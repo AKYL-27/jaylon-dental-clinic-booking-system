@@ -815,6 +815,8 @@ def parse_date_payload(payload):
         return (today + timedelta(days=1)).strftime("%Y-%m-%d")
     elif payload == "DATE_NEXT_MONDAY":
         days_ahead = (0 - today.weekday() + 7) % 7
+        if days_ahead == 0:  # If today is Monday, get next Monday
+            days_ahead = 7
         return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
     else:
         return payload  # For custom date picker
@@ -890,14 +892,17 @@ def handle_user_message(sender, text):
     # -------------------------
     if state["step"] == "choose_date":
 
+        # Handle "Pick a Date" option - ask user to type date manually
         if text in ["DATE_PICK", "date_manual"]:
-            send_message(sender, "📅 Please type your preferred date:\nYYYY-MM-DD")
+            send_message(sender, "📅 Please type your preferred date in this format:\nYYYY-MM-DD\n\nExample: 2025-12-25")
+            state["step"] = "awaiting_manual_date"
             return
 
+        # Validate date format
         try:
             datetime.strptime(text, "%Y-%m-%d")
         except ValueError:
-            send_message(sender, "❌ Invalid date format.\nUse YYYY-MM-DD")
+            send_message(sender, "❌ Invalid date format.\nPlease use YYYY-MM-DD (e.g., 2025-12-25)")
             return
 
         state["date"] = text
@@ -906,7 +911,7 @@ def handle_user_message(sender, text):
         free_times = resp.json()
 
         if not free_times:
-            send_message(sender, "No available times on this date.")
+            send_message(sender, "❌ No available times on this date. Please choose another date.")
             send_date_quick_replies(sender)
             return
 
@@ -916,7 +921,40 @@ def handle_user_message(sender, text):
             for time_ampm in free_times
         ]
 
-        send_message(sender, "Select from these available times:", quick_replies=quick_replies)
+        send_message(sender, "⏰ Select from these available times:", quick_replies=quick_replies)
+        state["step"] = "choose_time"
+        return
+
+    # -------------------------
+    # STEP 2B: AWAITING MANUAL DATE ENTRY
+    # -------------------------
+    if state["step"] == "awaiting_manual_date":
+        # Validate date format
+        try:
+            datetime.strptime(text, "%Y-%m-%d")
+        except ValueError:
+            send_message(sender, "❌ Invalid date format.\nPlease use YYYY-MM-DD (e.g., 2025-12-25)")
+            return
+
+        state["date"] = text
+        
+        # Process the date immediately
+        resp = requests.get(f"{BASE_URL}/api/free-times/{text}")
+        free_times = resp.json()
+
+        if not free_times:
+            send_message(sender, "❌ No available times on this date. Please choose another date.")
+            send_date_quick_replies(sender)
+            state["step"] = "choose_date"
+            return
+
+        # ✅ Times are now already in AM/PM format from API
+        quick_replies = [
+            {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
+            for time_ampm in free_times
+        ]
+
+        send_message(sender, "⏰ Select from these available times:", quick_replies=quick_replies)
         state["step"] = "choose_time"
         return
 
@@ -980,7 +1018,7 @@ def handle_user_message(sender, text):
         payment_info = {
             "GCASH": "📱 GCASH PAYMENT\nSend to: 0912 345 6789\nName: Jaylon Dental Clinic",
             "PAYMAYA": "💳 PAYMAYA PAYMENT\nSend to: 0912 345 6789\nName: Jaylon Dental Clinic",
-            "OTC": "🏥 OVER THE COUNTER\nYou may pay directly at the clinic."
+            "COUNTER": "🏥 OVER THE COUNTER\nYou may pay directly at the clinic."
         }
 
         send_message(
@@ -1267,7 +1305,6 @@ def webhook():
                         handle_user_message(sender, text)
 
     return "OK", 200
-
 
 def notify_payment_approved(appointment):
     send_message(
