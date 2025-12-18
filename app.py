@@ -82,7 +82,7 @@ from datetime import date
 
 @app.route("/privacy-policy")
 def privacy_policy():
-    return render_template("privacy&policy.html")
+    return render_template("privacyAndpolicy.html")
 
 
 @app.route("/profile")
