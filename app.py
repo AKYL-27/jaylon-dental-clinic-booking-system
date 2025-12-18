@@ -57,7 +57,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev_secret")
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
 
-BASE_URL = os.getenv("BASE_URL", "https://leaden-buddy-nonalgebraically.ngrok-free.dev")
+BASE_URL = os.getenv("BASE_URL", "https://jaylon-dental-clinic-booking-system.onrender.com")
 
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
