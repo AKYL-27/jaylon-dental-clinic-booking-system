@@ -45,6 +45,8 @@ load_dotenv(dotenv_path=env_path, override=True)
 # Messenger tokens (ADDED)
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
+print("PAGE_ACCESS_TOKEN loaded:", bool(PAGE_ACCESS_TOKEN))
+
 
 # Flask setup
 app = Flask(__name__)
@@ -1838,40 +1840,9 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-def refresh_persistent_menu():
-    url = f"https://graph.facebook.com/v17.0/me/messenger_profile?access_token={PAGE_ACCESS_TOKEN}"
-
-    menu = {
-        "persistent_menu": [
-            {
-                "locale": "default",
-                "composer_input_disabled": False,
-                "call_to_actions": [
-                    {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
-                    {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
-                    {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
-                    {"type": "postback", "title": "📞 Contact Us", "payload": "CONTACT_US"},
-                ]
-            },
-            {
-                "locale": "en_US",
-                "composer_input_disabled": False,
-                "call_to_actions": [
-                    {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
-                    {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
-                    {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
-                    {"type": "postback", "title": "📞 Contact Us", "payload": "CONTACT_US"},
-                ]
-            }
-        ]
-    }
-
-    response = requests.post(url, json=menu)
-    print("Persistent menu response:", response.json())
 
 # -----------------------------
 # RUN SERVER
 # -----------------------------
 if __name__ == "__main__":
     app.run(debug=True)
-    refresh_persistent_menu()
