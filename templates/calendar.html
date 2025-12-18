@@ -1,0 +1,600 @@
+<!doctype html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang=""> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" lang=""> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" lang=""> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang=""> <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Payements - Jaylon Dental Clinic</title>
+    <meta name="description" content="Ela Admin - HTML5 Admin Template">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" href="{{ url_for('static', filename='assets/images/clinic-logo2.png') }}" type="image/x-icon"/>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/normalize.css@8.0.0/normalize.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lykmapipo/themify-icons@0.1.2/css/themify-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pixeden-stroke-7-icon@1.2.3/pe-icon-7-stroke/dist/pe-icon-7-stroke.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/3.2.0/css/flag-icon.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/cs-skin-elastic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+
+
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,600,700,800' rel='stylesheet' type='text/css'>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.js"></script>
+
+    <!-- <script type="text/javascript" src="https://cdn.jsdelivr.net/html5shiv/3.7.3/html5shiv.min.js"></script> -->
+
+</head>
+
+<style>
+#calendar {
+max-width: 1100px;
+margin: 40px auto;
+}
+
+.modal-header {
+    background-color: #007bff;
+    color: white;
+}
+
+.modal-header.danger {
+    background-color: #dc3545;
+}
+
+.btn-block-day {
+    margin-top: 15px;
+}
+
+.time-display {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.block-options {
+    margin: 20px 0;
+}
+
+.block-option-card {
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.block-option-card:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.block-option-card.selected {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+}
+
+.block-option-card input[type="radio"] {
+    margin-right: 10px;
+}
+
+.event-details {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+}
+
+.event-details p {
+    margin-bottom: 8px;
+}
+
+.alert-warning {
+    border-left: 4px solid #ffc107;
+}
+</style>
+<body>
+    <!-- Left Panel -->
+
+    <aside id="left-panel" class="left-panel">
+        <nav class="navbar navbar-expand-sm navbar-default">
+
+            <div id="main-menu" class="main-menu collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                    <li class="">
+                        <a href="{{url_for ('index')}}"><i class="menu-icon fa fa-laptop"></i>Dashboard </a>
+                    </li>
+
+                    <li class="menu-title">Components</li><!-- /.menu-title -->
+
+                    <li class="">
+                        <a href="{{url_for ('appointments')}}"><i class="menu-icon fa fa-check-square-o"></i>Appointments </a>
+                    </li>
+
+                    <!--<li class="">
+                        <a href="{{url_for ('inbox')}}"><i class="menu-icon fa fa-envelope-o"></i>Messenger Inbox </a>
+                    </li>-->
+
+                    <li >
+                        <a href="{{url_for ('payments')}}"><i class="menu-icon fa fa-credit-card"></i> Payments </a>
+                    </li>
+
+                    <li class="">
+                        <a href="{{url_for ('services')}}"><i class="menu-icon fa fa-pencil-square-o"></i> Services </a>
+                    </li>
+
+                    <li class="active">
+                        <a href="{{ url_for('calendar') }}"><i class="menu-icon fa fa-calendar"></i> Calendar</a>
+                    </li>
+
+
+
+                </ul>
+            </div><!-- /.navbar-collapse -->
+        </nav>
+    </aside><!-- /#left-panel -->
+
+    <!-- Left Panel -->
+
+    <!-- Right Panel -->
+
+    <div id="right-panel" class="right-panel">
+                <header id="header" class="header">
+            <div class="top-left">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo.png')}}" alt="Logo"></a>
+                    <a class="navbar-brand hidden" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo2.png')}}" alt="Logo"></a>
+                    <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
+                </div>
+            </div>
+            <div class="top-right">
+                <div class="header-menu">
+
+                    <div class="user-area dropdown float-right">
+                        <a href="#" class="dropdown-toggle active" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <img class="user-avatar rounded-circle" src="{{ url_for('static', filename='assets/images/default-profile.png') }}" alt="User Avatar">
+                        </a>
+
+                        <div class="user-menu dropdown-menu">
+                            <a class="nav-link" href="#"><i class="fa fa-user"></i>My Profile</a>
+                            <a class="nav-link" href="#"><i class="fa fa-power-off"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header><!-- /header -->
+
+
+        <!-- Header-->
+
+        <div class="content">
+            <div class="animated fadeIn">
+                <div class="row">
+
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong class="card-title">Calendar</strong>
+                            </div>
+                            <div class="card-body">
+                                <div id="calendar">
+
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div><!-- .animated -->
+        </div><!-- .content -->
+
+
+        <!-- Block Time Modal -->
+        <div class="modal fade" id="blockTimeModal" tabindex="-1" role="dialog" aria-labelledby="blockTimeModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="blockTimeModalLabel">
+                            <i class="fa fa-ban"></i> Block Time Slot
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="time-display">
+                            <h6><strong>Selected Date:</strong></h6>
+                            <p id="selectedDate" class="mb-2"></p>
+                            <h6><strong>Time Range:</strong></h6>
+                            <p id="selectedTime"></p>
+                        </div>
+
+                        <div class="block-options">
+                            <h6><strong>Block Options:</strong></h6>
+                            
+                            <div class="block-option-card" onclick="selectBlockOption('timeSlot')">
+                                <label class="mb-0">
+                                    <input type="radio" name="blockOption" value="timeSlot" checked>
+                                    <strong>Block Selected Time Slot</strong>
+                                    <p class="mb-0 ml-4 text-muted small">Block only the selected time range</p>
+                                </label>
+                            </div>
+
+                            <div class="block-option-card" onclick="selectBlockOption('fullDay')">
+                                <label class="mb-0">
+                                    <input type="radio" name="blockOption" value="fullDay">
+                                    <strong>Block Entire Day</strong>
+                                    <p class="mb-0 ml-4 text-muted small">Block the entire day (08:00 - 18:00)</p>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="blockReason"><strong>Reason (Optional):</strong></label>
+                            <textarea class="form-control" id="blockReason" rows="3" placeholder="Enter reason for blocking..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="confirmBlock()">
+                            <i class="fa fa-check"></i> Confirm Block
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unblock Time Modal -->
+        <div class="modal fade" id="unblockTimeModal" tabindex="-1" role="dialog" aria-labelledby="unblockTimeModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header danger">
+                        <h5 class="modal-title" id="unblockTimeModalLabel">
+                            <i class="fa fa-unlock"></i> Unblock Time Slot
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="fa fa-exclamation-triangle"></i> 
+                            <strong>Warning:</strong> This will unblock the time slot and make it available for appointments again.
+                        </div>
+
+                        <div class="event-details">
+                            <h6><strong>Blocked Slot Details:</strong></h6>
+                            <p><strong>Date:</strong> <span id="unblockDate"></span></p>
+                            <p><strong>Time:</strong> <span id="unblockTime"></span></p>
+                            <p id="unblockReasonContainer" style="display: none;">
+                                <strong>Reason:</strong> <span id="unblockReason"></span>
+                            </p>
+                        </div>
+
+                        <p class="text-muted mb-0">
+                            <i class="fa fa-info-circle"></i> 
+                            Are you sure you want to unblock this time slot?
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="confirmUnblock()">
+                            <i class="fa fa-unlock"></i> Unblock Time Slot
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- FOOTER -->
+        <div class="clearfix"></div>
+
+        <footer class="site-footer">
+            <div class="footer-inner bg-white">
+                <div class="row">
+                    <div class="col-sm-6">Copyright © 2025 Jaylon Dental Clinic</div>
+                </div>
+            </div>
+        </footer>
+
+    </div><!-- /#right-panel -->
+
+    <!-- Right Panel -->
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@2.2.4/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.4/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-match-height@0.7.2/dist/jquery.matchHeight.min.js"></script>
+    <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+   <script>
+let currentSelection = null;
+let currentEvent = null;
+
+// Function to hide modal properly
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.remove('show');
+    modal.style.display = 'none';
+    
+    // Remove backdrop
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+    
+    // Remove modal-open class from body
+    document.body.classList.remove('modal-open');
+    document.body.style.paddingRight = '';
+}
+
+// Function to show modal properly
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.classList.add('show');
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+    
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop fade show';
+    document.body.appendChild(backdrop);
+    
+    // Close on backdrop click
+    backdrop.addEventListener('click', function() {
+        hideModal(modalId);
+    });
+}
+
+function selectBlockOption(option) {
+    // Remove selected class from all cards
+    document.querySelectorAll('.block-option-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked card
+    event.currentTarget.classList.add('selected');
+    
+    // Check the radio button
+    document.querySelector(`input[value="${option}"]`).checked = true;
+}
+
+function formatTime(timeString) {
+    const date = new Date(timeString);
+    return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+    });
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+function confirmBlock() {
+    const blockOption = document.querySelector('input[name="blockOption"]:checked').value;
+    const reason = document.getElementById('blockReason').value;
+    
+    let requestData = {
+        date: currentSelection.date,
+        reason: reason
+    };
+
+    if (blockOption === 'fullDay') {
+        requestData.start = '08:00';
+        requestData.end = '18:00';
+        requestData.fullDay = true;
+    } else {
+        requestData.start = currentSelection.start;
+        requestData.end = currentSelection.end;
+        requestData.fullDay = false;
+    }
+
+    fetch('/api/block', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideModal('blockTimeModal');
+        
+        // Show success message
+        showSuccessMessage('Time slot blocked successfully!');
+        
+        // Reload calendar events
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showErrorMessage('Failed to block time slot. Please try again.');
+    });
+}
+
+function confirmUnblock() {
+    if (!currentEvent) {
+        showErrorMessage('No event selected for unblocking.');
+        return;
+    }
+
+    fetch('/api/unblock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: currentEvent.id })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            hideModal('unblockTimeModal');
+            showSuccessMessage('Time slot unblocked successfully!');
+
+            // Remove the event from FullCalendar
+            currentEvent.remove();
+        } else {
+            showErrorMessage(data.message || 'Failed to unblock time slot.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showErrorMessage('Failed to unblock time slot. Please try again.');
+    });
+}
+
+function showSuccessMessage(message) {
+    // Create a temporary success alert
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success alert-dismissible fade show';
+    alert.style.position = 'fixed';
+    alert.style.top = '20px';
+    alert.style.right = '20px';
+    alert.style.zIndex = '9999';
+    alert.innerHTML = `
+        <i class="fa fa-check-circle"></i> ${message}
+        <button type="button" class="close" data-dismiss="alert">
+            <span>&times;</span>
+        </button>
+    `;
+    document.body.appendChild(alert);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        alert.remove();
+    }, 3000);
+}
+
+function showErrorMessage(message) {
+    // Create a temporary error alert
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger alert-dismissible fade show';
+    alert.style.position = 'fixed';
+    alert.style.top = '20px';
+    alert.style.right = '20px';
+    alert.style.zIndex = '9999';
+    alert.innerHTML = `
+        <i class="fa fa-exclamation-circle"></i> ${message}
+        <button type="button" class="close" data-dismiss="alert">
+            <span>&times;</span>
+        </button>
+    `;
+    document.body.appendChild(alert);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Setup modal close button listeners
+    document.querySelectorAll('[data-dismiss="modal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            hideModal(modal.id);
+        });
+    });
+
+    var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'timeGridWeek',
+        selectable: true,
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+
+        eventSources: [
+            { url: '/api/calendar-events' },
+            { url: '/api/blocked-slots' }
+        ],
+
+        select: function(info) {
+            // Store the selection
+            currentSelection = {
+                date: info.startStr.split('T')[0],
+                start: info.startStr.split('T')[1].substring(0,5),
+                end: info.endStr.split('T')[1].substring(0,5),
+                startStr: info.startStr,
+                endStr: info.endStr
+            };
+
+            // Update modal content
+            document.getElementById('selectedDate').textContent = formatDate(info.start);
+            document.getElementById('selectedTime').textContent = 
+                formatTime(info.start) + ' - ' + formatTime(info.end);
+            
+            // Reset form
+            document.querySelector('input[value="timeSlot"]').checked = true;
+            document.getElementById('blockReason').value = '';
+            
+            // Reset card selections
+            document.querySelectorAll('.block-option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector('.block-option-card').classList.add('selected');
+
+            // Show modal
+            showModal('blockTimeModal');
+        },
+
+        eventClick: function(info) {
+            // Check if this is a blocked slot (gray color) or an appointment (red color)
+            const eventColor = info.event.backgroundColor || info.event.color;
+            const isBlocked = eventColor === '#6c757d' || eventColor === 'gray' || eventColor === 'grey' || info.event.extendedProps.isBlocked;
+            
+            if (isBlocked) {
+                // This is a blocked slot - allow unblocking
+                currentEvent = info.event;
+                
+                // Update unblock modal content
+                document.getElementById('unblockDate').textContent = formatDate(info.event.start);
+                document.getElementById('unblockTime').textContent = 
+                    formatTime(info.event.start) + ' - ' + formatTime(info.event.end);
+                
+                // Show reason if available
+                if (info.event.extendedProps.reason || info.event.title) {
+                    const reason = info.event.extendedProps.reason || info.event.title;
+                    document.getElementById('unblockReason').textContent = reason;
+                    document.getElementById('unblockReasonContainer').style.display = 'block';
+                } else {
+                    document.getElementById('unblockReasonContainer').style.display = 'none';
+                }
+                
+                // Show unblock modal
+                showModal('unblockTimeModal');
+            } else {
+                // This is an appointment (red) - show appointment details or do nothing
+                alert('This is an appointment. Only blocked time slots (gray) can be unblocked.');
+            }
+        }
+    });
+
+    calendar.render();
+});
+</script>
+</body>
+</html>

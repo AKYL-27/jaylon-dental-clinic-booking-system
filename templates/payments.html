@@ -1,0 +1,382 @@
+<!doctype html>
+<html class="no-js" lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Payments - Jaylon Dental Clinic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" href="{{ url_for('static', filename='assets/images/clinic-logo2.png') }}" type="image/x-icon"/>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/normalize.css@8.0.0/normalize.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/cs-skin-elastic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/style.css') }}">
+
+    <!-- TABULATOR -->
+    <link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+
+    <!-- SweetAlert2 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        .tabulator-row:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- LEFT PANEL -->
+<aside id="left-panel" class="left-panel">
+    <nav class="navbar navbar-expand-sm navbar-default">
+        <div id="main-menu" class="main-menu collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="{{url_for ('index')}}"><i class="menu-icon fa fa-laptop"></i>Dashboard</a></li>
+                <li class="menu-title">Components</li>
+                <li><a href="{{url_for ('appointments')}}"><i class="menu-icon fa fa-check-square-o"></i>Appointments</a></li>
+                <li class="active"><a href="{{url_for ('payments')}}"><i class="menu-icon fa fa-credit-card"></i>Payments</a></li>
+                <li><a href="{{url_for ('services')}}"><i class="menu-icon fa fa-pencil-square-o"></i>Services</a></li>
+                <li><a href="{{ url_for('calendar') }}"><i class="menu-icon fa fa-calendar"></i>Calendar</a></li>
+            </ul>
+        </div>
+    </nav>
+</aside>
+
+<!-- RIGHT PANEL -->
+<div id="right-panel" class="right-panel">
+
+        <header id="header" class="header">
+            <div class="top-left">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo.png')}}" alt="Logo"></a>
+                    <a class="navbar-brand hidden" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo2.png')}}" alt="Logo"></a>
+                    <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
+                </div>
+            </div>
+            <div class="top-right">
+                <div class="header-menu">
+
+                    <div class="user-area dropdown float-right">
+                        <a href="#" class="dropdown-toggle active" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <img class="user-avatar rounded-circle" src="{{ url_for('static', filename='assets/images/default-profile.png') }}" alt="User Avatar">
+                        </a>
+
+                        <div class="user-menu dropdown-menu">
+                            <a class="nav-link" href="#"><i class="fa fa-user"></i>My Profile</a>
+                            <a class="nav-link" href="#"><i class="fa fa-power-off"></i>Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header><!-- /header -->
+
+<div class="breadcrumbs">
+    <div class="breadcrumbs-inner">
+        <div class="row m-0">
+            <div class="col-sm-4">
+                <h1>Payments</h1>
+            </div>
+            <div class="col-sm-8">
+                <div class="page-header float-right">
+                    <div class="page-title">
+                        <ol class="breadcrumb text-right">
+                            <li><a href="#">Payments</a></li>
+                            <li class="active">Payements List</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="content">
+<div class="animated fadeIn">
+
+<div class="card">
+    <div class="card-header">
+        <strong class="card-title">Payments List</strong>
+    </div>
+
+    <div class="card-body">
+        <!-- TABULATOR TABLE -->
+        <div id="payments-table"></div>
+    </div>
+</div>
+
+</div>
+</div>
+
+<footer class="site-footer">
+    <div class="footer-inner bg-white">
+        <div class="row">
+            <div class="col-sm-6">Copyright © 2025 Jaylon Dental Clinic</div>
+        </div>
+    </div>
+</footer>
+
+</div>
+
+<!-- ================= DECLINE MODAL ================= -->
+
+<div class="modal fade" id="declineModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Decline Payment</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p id="declinePatientText" class="font-weight-bold"></p>
+
+        <div class="form-group">
+          <label>Reason for decline</label>
+          <textarea
+            id="declineReason"
+            class="form-control"
+            rows="3"
+            placeholder="e.g. Blurry receipt / Incorrect amount"
+            required
+          ></textarea>
+        </div>
+
+        <input type="hidden" id="declineAppointmentId">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button class="btn btn-danger" onclick="submitDecline()">Send Decline</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- PROOF VIEW MODAL -->
+<div class="modal fade" id="proofModal" tabindex="-1">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">Payment Proof</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <div class="modal-body text-center">
+        <img id="proofImage"
+             src=""
+             alt="Payment Proof"
+             class="img-fluid rounded border">
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ================= SCRIPTS ================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@2.2.4/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.4/dist/umd/popper.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"></script>
+
+<!-- TABULATOR -->
+<script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+// Toast notification helpers
+function showToastSuccess(title) {
+    Swal.fire({ 
+        icon: 'success', 
+        title: title, 
+        toast: true, 
+        position: 'top-end', 
+        showConfirmButton: false, 
+        timer: 1500 
+    });
+}
+
+function showToastError(title) {
+    Swal.fire({ 
+        icon: 'error', 
+        title: title, 
+        toast: true, 
+        position: 'top-end', 
+        showConfirmButton: false, 
+        timer: 1800 
+    });
+}
+
+const paymentsData = [
+   {% for p in payments %}
+   {
+       id: "{{ p._id }}",
+       fullname: "{{ p.fullname }}",
+       method: "{{ p.payment_method }}",
+       amount: "{{ '{:,.2f}'.format(p.downpayment) }}",
+       proof: "{{ p.payment_proof or '' }}",
+       payment_status: "{{ p.payment_status }}"
+   },
+   {% endfor %}
+];
+
+new Tabulator("#payments-table", {
+    data: paymentsData,
+    layout: "fitColumns",
+    pagination: "local",
+    paginationSize: 10,
+    responsiveLayout: "collapse",
+
+    columns: [
+        { title: "Patient Name", field: "fullname", headerFilter: "input" },
+        { title: "Method", field: "method" },
+        { title: "Amount", field: "amount" },
+
+        {
+            title: "Proof",
+            field: "proof",
+            hozAlign: "center",
+            formatter: function(cell){
+                const url = cell.getValue();
+                if (!url) return "—";
+                return `<button class="btn btn-sm btn-info" onclick="viewProof('${url}')">View</button>`;
+            }
+        },
+
+        {
+            title: "Status",
+            field: "payment_status",
+            hozAlign: "center",
+            formatter: function(cell){
+                const s = (cell.getValue() || "").toLowerCase();
+                let c = "secondary";
+                if (s === "approved") c = "success";
+                if (s === "pending") c = "warning";
+                if (s === "declined" || s === "rejected") c = "danger";
+                return `<span class="badge badge-${c}">${s.toUpperCase()}</span>`;
+            }
+        },
+
+        {
+            title: "Action",
+            hozAlign: "center",
+            minWidth: 200,
+            formatter: function(cell){
+                const r = cell.getRow().getData();
+
+                if (!r.payment_status || r.payment_status.toLowerCase() !== "pending") return "—";
+
+                return `
+                    <button class="btn btn-sm btn-success mr-1" onclick="approvePayment('${r.id}')">Approve</button>
+                    <button class="btn btn-sm btn-danger" onclick="openDeclineModal('${r.id}', '${r.fullname}')">Decline</button>
+                `;
+            }
+        }
+    ]
+});
+
+// Approve Payment Function
+function approvePayment(appointmentId) {
+    Swal.fire({
+        title: 'Approve Payment?',
+        text: "Confirm that this payment is valid",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, approve it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch("/api/payments/approve", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ appointment_id: appointmentId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToastSuccess('Payment approved');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToastError(data.error || 'Failed to approve');
+                }
+            })
+            .catch(() => {
+                showToastError('Server error');
+            });
+        }
+    });
+}
+
+// Open Decline Modal
+function openDeclineModal(appointmentId, fullname) {
+    $('#declineAppointmentId').val(appointmentId);
+    $('#declinePatientText').text("Patient: " + fullname);
+    $('#declineReason').val("");
+    $('#declineModal').modal('show');
+}
+
+// Submit Decline
+function submitDecline() {
+    const appointmentId = $('#declineAppointmentId').val();
+    const reason = $('#declineReason').val().trim();
+
+    if (!reason) {
+        showToastError('Please enter a reason');
+        return;
+    }
+
+    fetch("/api/payments/decline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            appointment_id: appointmentId,
+            reason: reason
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            $('#declineModal').modal('hide');
+            showToastSuccess('Payment declined');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToastError(data.error || 'Failed to decline');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToastError('Server error');
+    });
+}
+
+// View Proof Function
+function viewProof(imageUrl) {
+    $("#proofImage").attr("src", imageUrl);
+    $("#proofModal").modal("show");
+}
+
+// Clean up modal backdrop
+$('#declineModal, #proofModal').on('hidden.bs.modal', function() {
+    $('body').removeClass('modal-open');
+    $('.modal-backdrop').remove();
+});
+</script>
+
+
+
+
+
+</body>
+</html>
