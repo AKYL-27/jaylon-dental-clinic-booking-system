@@ -80,6 +80,10 @@ print("Connected to:", DB_NAME)
 # -----------------------------
 from datetime import date
 
+@app.route("/privacy-policy")
+def privacy_policy():
+    return render_template("privacy&policy.html")
+
 
 @app.route("/profile")
 def profile():
