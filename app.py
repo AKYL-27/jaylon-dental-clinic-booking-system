@@ -857,10 +857,12 @@ def handle_user_message(sender, text):
             "date": None,
             "time": None,
             "payment_method": None,
-            "payment_proof": None
+            "payment_proof": None,
+            "last_activity": datetime.now()
         }
 
     state = user_state[sender]
+    state["last_activity"] = datetime.now()  # Track activity
 
     # -------------------------
     # STEP 1: CHOOSE SERVICE
@@ -868,7 +870,13 @@ def handle_user_message(sender, text):
     if state["step"] == "choose_service":
         if text.startswith("SERVICE_"):
             service_id = text.replace("SERVICE_", "")
-            service = services_collection.find_one({"_id": ObjectId(service_id)})
+            
+            try:
+                service = services_collection.find_one({"_id": ObjectId(service_id)})
+            except Exception as e:
+                print(f"Database error: {e}")
+                send_message(sender, "❌ Sorry, there was an error. Please try again.")
+                return
 
             if not service:
                 send_message(sender, "Invalid service. Please choose again.")
@@ -880,7 +888,7 @@ def handle_user_message(sender, text):
             state["downpayment"] = service.get("downpayment", 0)
             state["step"] = "choose_date"
 
-            send_message(sender, f"You selected: {service['name']}")
+            send_message(sender, f"✅ You selected: {service['name']}")
             send_date_quick_replies(sender)
             return
 
@@ -888,7 +896,7 @@ def handle_user_message(sender, text):
         return
 
     # -------------------------
-    # STEP 2: CHOOSE DATE
+    # STEP 2: CHOOSE DATE - WITH TIMEOUT FIX
     # -------------------------
     if state["step"] == "choose_date":
 
@@ -907,18 +915,50 @@ def handle_user_message(sender, text):
 
         state["date"] = text
 
-        resp = requests.get(f"{BASE_URL}/api/free-times/{text}")
-        free_times = resp.json()
+        # ✅ FIX: Add timeout and error handling for API call
+        try:
+            print(f"Fetching free times for {text}...")  # Debug log
+            resp = requests.get(
+                f"{BASE_URL}/api/free-times/{text}",
+                timeout=10  # 10 second timeout
+            )
+            resp.raise_for_status()  # Raise error for bad status codes
+            free_times = resp.json()
+            print(f"Got {len(free_times)} free times")  # Debug log
+            
+        except requests.exceptions.Timeout:
+            print(f"Timeout fetching free times for {text}")
+            send_message(
+                sender, 
+                "⚠️ The server is taking too long to respond. Please try again in a moment."
+            )
+            send_date_quick_replies(sender)
+            return
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching free times: {e}")
+            send_message(
+                sender,
+                "❌ Sorry, there was an error checking availability.\n\nPlease try selecting a different date."
+            )
+            send_date_quick_replies(sender)
+            return
+            
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            send_message(sender, "❌ An unexpected error occurred. Please try again.")
+            return
 
-        if not free_times:
-            send_message(sender, "❌ No available times on this date. Please choose another date.")
+        # Check if any times are available
+        if not free_times or len(free_times) == 0:
+            send_message(sender, "❌ No available times on this date.\n\nPlease choose another date.")
             send_date_quick_replies(sender)
             return
 
-        # ✅ Times are now already in AM/PM format from API
+        # ✅ Times are already in AM/PM format from API
         quick_replies = [
             {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
-            for time_ampm in free_times
+            for time_ampm in free_times[:13]  # Limit to 13 options (Messenger limit)
         ]
 
         send_message(sender, "⏰ Select from these available times:", quick_replies=quick_replies)
@@ -931,27 +971,60 @@ def handle_user_message(sender, text):
     if state["step"] == "awaiting_manual_date":
         # Validate date format
         try:
-            datetime.strptime(text, "%Y-%m-%d")
+            parsed_date = datetime.strptime(text, "%Y-%m-%d")
+            
+            # Check if date is in the past
+            if parsed_date.date() < datetime.now().date():
+                send_message(sender, "❌ Cannot book appointments in the past.\n\nPlease enter a future date.")
+                return
+                
         except ValueError:
             send_message(sender, "❌ Invalid date format.\nPlease use YYYY-MM-DD (e.g., 2025-12-25)")
             return
 
         state["date"] = text
         
-        # Process the date immediately
-        resp = requests.get(f"{BASE_URL}/api/free-times/{text}")
-        free_times = resp.json()
-
-        if not free_times:
-            send_message(sender, "❌ No available times on this date. Please choose another date.")
-            send_date_quick_replies(sender)
+        # Process the date immediately with timeout protection
+        try:
+            print(f"Fetching free times for manual date {text}...")
+            resp = requests.get(
+                f"{BASE_URL}/api/free-times/{text}",
+                timeout=10
+            )
+            resp.raise_for_status()
+            free_times = resp.json()
+            print(f"Got {len(free_times)} free times")
+            
+        except requests.exceptions.Timeout:
+            print(f"Timeout fetching free times for manual date {text}")
+            send_message(
+                sender,
+                "⚠️ The server is taking too long to respond. Please try again in a moment."
+            )
             state["step"] = "choose_date"
+            send_date_quick_replies(sender)
+            return
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching free times for manual date: {e}")
+            send_message(
+                sender,
+                "❌ Sorry, there was an error checking availability.\n\nPlease try a different date."
+            )
+            state["step"] = "choose_date"
+            send_date_quick_replies(sender)
             return
 
-        # ✅ Times are now already in AM/PM format from API
+        if not free_times or len(free_times) == 0:
+            send_message(sender, "❌ No available times on this date.\n\nPlease choose another date.")
+            state["step"] = "choose_date"
+            send_date_quick_replies(sender)
+            return
+
+        # ✅ Times are already in AM/PM format from API
         quick_replies = [
             {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
-            for time_ampm in free_times
+            for time_ampm in free_times[:13]  # Limit to 13 options
         ]
 
         send_message(sender, "⏰ Select from these available times:", quick_replies=quick_replies)
@@ -963,19 +1036,34 @@ def handle_user_message(sender, text):
     # -------------------------
     if state["step"] == "choose_time":
         # Store time in 24-hour format
-        state["time"] = to_24h(text)
+        try:
+            state["time"] = to_24h(text)
+        except Exception as e:
+            print(f"Error converting time: {e}")
+            send_message(sender, "❌ Invalid time format. Please select a time from the options.")
+            return
+            
         state["step"] = "ask_name"
-
-        send_message(sender, "Please type your full name for the appointment:")
+        send_message(sender, "📝 Please type your full name for the appointment:")
         return
         
     if state["step"] == "ask_name":
         state["fullname"] = text
-        state["step"] = "confirm_downpayment"
+        
+        try:
+            service = services_collection.find_one(
+                {"_id": ObjectId(state["service_id"])}
+            )
+        except Exception as e:
+            print(f"Database error fetching service: {e}")
+            send_message(sender, "❌ Sorry, there was an error. Please try booking again.")
+            user_state[sender] = {"step": None}
+            return
 
-        service = services_collection.find_one(
-            {"_id": ObjectId(state["service_id"])}
-        )
+        if not service:
+            send_message(sender, "❌ Service not found. Please start over.")
+            user_state[sender] = {"step": None}
+            return
 
         downpayment = service.get("downpayment", 0)
         state["downpayment"] = downpayment
@@ -983,8 +1071,8 @@ def handle_user_message(sender, text):
 
         send_message(
             sender,
-            f"Hi {state['fullname']} 😊\n\n"
-            f"The service {state['service_name']} requires a ₱{downpayment:,.2f} downpayment.\n\n"
+            f"Hi {state['fullname']}! 😊\n\n"
+            f"The service **{state['service_name']}** requires a ₱{downpayment:,.2f} downpayment.\n\n"
             f"Do you want to continue?",
             quick_replies=[
                 {"content_type": "text", "title": "Yes", "payload": "DP_YES"},
@@ -993,12 +1081,10 @@ def handle_user_message(sender, text):
         )
         return
 
-
-
     if state["step"] == "confirm_downpayment":
 
         if text == "DP_NO":
-            send_message(sender, "No problem 😊 Let me know if you need anything else.")
+            send_message(sender, "No problem! 😊 Feel free to reach out when you're ready.")
             user_state[sender] = {"step": None}
             return
 
@@ -1016,14 +1102,14 @@ def handle_user_message(sender, text):
         state["step"] = "send_proof"
 
         payment_info = {
-            "GCASH": "📱 GCASH PAYMENT\nSend to: 0912 345 6789\nName: Jaylon Dental Clinic",
-            "PAYMAYA": "💳 PAYMAYA PAYMENT\nSend to: 0912 345 6789\nName: Jaylon Dental Clinic",
-            "COUNTER": "🏥 OVER THE COUNTER\nYou may pay directly at the clinic."
+            "GCASH": "📱 **GCASH PAYMENT**\n\n💰 Amount: ₱{:.2f}\n📞 Send to: 0912 345 6789\n👤 Name: Jaylon Dental Clinic".format(state["downpayment"]),
+            "PAYMAYA": "💳 **PAYMAYA PAYMENT**\n\n💰 Amount: ₱{:.2f}\n📞 Send to: 0912 345 6789\n👤 Name: Jaylon Dental Clinic".format(state["downpayment"]),
+            "COUNTER": "🏥 **OVER THE COUNTER**\n\n💰 Amount: ₱{:.2f}\n📍 Pay directly at:\nJaylon Dental Clinic\nStall 13 Bldg. 06 Public Market, Makilala".format(state["downpayment"])
         }
 
         send_message(
             sender,
-            f"{payment_info[method]}\n\n📸 After payment, please send a screenshot or photo of the receipt here."
+            f"{payment_info.get(method, 'Payment details')}\n\n📸 After payment, please send a screenshot or photo of the receipt here."
         )
         return
 
@@ -1033,86 +1119,97 @@ def handle_user_message(sender, text):
     if state["step"] == "send_proof":
         state["payment_proof"] = text
 
-        appointment_id = appointments_collection.insert_one({
-            "fullname": state["fullname"],
-            "user_id": sender,
-            "service": state["service_name"],
-            "date": state["date"],
-            "time": state["time"],  # Stored in 24-hour format
-            "downpayment": state["downpayment"],
-            "payment_method": state["payment_method"],
-            "payment_proof": text,
-            "payment_status": "pending",
-            "status": "pending",
-            "created_at": datetime.now()
-        }).inserted_id
+        try:
+            appointment_id = appointments_collection.insert_one({
+                "fullname": state["fullname"],
+                "user_id": sender,
+                "service": state["service_name"],
+                "date": state["date"],
+                "time": state["time"],  # Stored in 24-hour format
+                "downpayment": state["downpayment"],
+                "payment_method": state["payment_method"],
+                "payment_proof": text,
+                "payment_status": "pending",
+                "status": "pending",
+                "created_at": datetime.now()
+            }).inserted_id
 
-        state["appointment_id"] = str(appointment_id)
-        state["step"] = "waiting_admin"
+            state["appointment_id"] = str(appointment_id)
+            state["step"] = "waiting_admin"
 
-        send_message(
-            sender,
-            "📥 Proof received!\nPlease wait while the admin confirms your down payment."
-        )
+            send_message(
+                sender,
+                "✅ **Proof received!**\n\n⏳ Please wait while the admin confirms your down payment.\n\n"
+                "You'll receive a notification once confirmed."
+            )
+        except Exception as e:
+            print(f"Error saving appointment: {e}")
+            send_message(sender, "❌ Sorry, there was an error saving your appointment. Please try again.")
+        
         return
 
     # -------------------------
     # RESCHEDULE
     # -------------------------
-    
-    if state["step"] == "reschedule_start":
-        # Here, you can let user input their appointment ID or date
-        appointment = appointments_collection.find_one({"_id": ObjectId(text)})
-        if not appointment:
-            send_message(sender, "❌ Appointment not found. Please check your appointment ID.")
-            return
-        state["appointment_id"] = str(appointment["_id"])
-        state["step"] = "choose_new_date"
-        send_date_quick_replies(sender)
-        return
-
     if state["step"] == "choose_new_date":
+        # Validate date format
+        try:
+            datetime.strptime(text, "%Y-%m-%d")
+        except ValueError:
+            send_message(sender, "❌ Invalid date format.\nPlease use YYYY-MM-DD")
+            return
+            
         state["new_date"] = text
-        resp = requests.get(f"{BASE_URL}/api/free-times/{text}")
-        free_times = resp.json()
+        
+        try:
+            resp = requests.get(f"{BASE_URL}/api/free-times/{text}", timeout=10)
+            resp.raise_for_status()
+            free_times = resp.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching times for reschedule: {e}")
+            send_message(sender, "❌ Error checking availability. Please try again.")
+            return
 
         if not free_times:
-            send_message(sender, "No available times on this date.")
+            send_message(sender, "❌ No available times on this date.")
             send_date_quick_replies(sender)
             return
 
-        # ✅ Times are already in AM/PM format
         quick_replies = [
             {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
-            for time_ampm in free_times
+            for time_ampm in free_times[:13]
         ]
 
-        send_message(sender, "Select a new time:", quick_replies=quick_replies)
+        send_message(sender, "⏰ Select a new time:", quick_replies=quick_replies)
         state["step"] = "choose_new_time"
         return
 
     if state["step"] == "choose_new_time":
-        # Convert to 24-hour for storage
-        new_time_24h = to_24h(text)
-        
-        appointments_collection.update_one(
-            {"_id": ObjectId(state["appointment_id"])},
-            {
-                "$set": {
-                    "date": state["new_date"],
-                    "time": new_time_24h,
-                    "status": "rescheduled",
-                    "updated_at": datetime.now()
+        try:
+            new_time_24h = to_24h(text)
+            
+            appointments_collection.update_one(
+                {"_id": ObjectId(state["appointment_id"])},
+                {
+                    "$set": {
+                        "date": state["new_date"],
+                        "time": new_time_24h,
+                        "status": "rescheduled",
+                        "updated_at": datetime.now()
+                    }
                 }
-            }
-        )
+            )
 
-        send_message(
-            sender,
-            f"✅ Your appointment has been rescheduled!\n\n📅 {state['new_date']}\n⏰ {text}"
-        )
+            send_message(
+                sender,
+                f"✅ **Appointment Rescheduled!**\n\n📅 New Date: {state['new_date']}\n⏰ New Time: {text}"
+            )
 
-        user_state[sender] = {"step": None}
+            user_state[sender] = {"step": None}
+        except Exception as e:
+            print(f"Error rescheduling: {e}")
+            send_message(sender, "❌ Error rescheduling appointment. Please try again.")
+        
         return
     
     # -------------------------
@@ -1123,28 +1220,65 @@ def handle_user_message(sender, text):
         if text == "CANCEL_NO":
             send_message(sender, "👍 No problem! Your appointment is still active.")
             user_state[sender] = {"step": None}
-            return  # ✅ STOP HERE
+            return
 
         if text == "CANCEL_YES":
-            appointments_collection.update_one(
-                {"_id": ObjectId(state["appointment_id"])},
-                {
-                    "$set": {
-                        "status": "cancelled",
-                        "updated_at": datetime.now()
+            try:
+                appointments_collection.update_one(
+                    {"_id": ObjectId(state["appointment_id"])},
+                    {
+                        "$set": {
+                            "status": "cancelled",
+                            "updated_at": datetime.now()
+                        }
                     }
-                }
-            )
+                )
 
-            send_message(sender, "❌ Your appointment has been cancelled.")
-            send_my_appointments_carousel(sender)  # optional but recommended
-            user_state[sender] = {"step": None}
-            return  # ✅ STOP HERE
+                send_message(sender, "❌ Your appointment has been cancelled.")
+                user_state[sender] = {"step": None}
+            except Exception as e:
+                print(f"Error cancelling appointment: {e}")
+                send_message(sender, "❌ Error cancelling appointment. Please try again.")
+            
+            return
 
     # -------------------------
     # FALLBACK
     # -------------------------
-    send_message(sender, "Hi! Tap **Book Appointment** to get started 😊")
+    send_message(sender, "Hi! 👋 Tap **Book Appointment** from the menu to get started 😊")
+
+
+# -------------------------
+# IMPROVED SEND MESSAGE WITH TIMEOUT
+# -------------------------
+def send_message(recipient_id, text, quick_replies=None, attachment=None):
+    """
+    Send a text message, optional quick replies or attachment to Messenger.
+    """
+    url = "https://graph.facebook.com/v17.0/me/messages"
+    payload = {"recipient": {"id": recipient_id}}
+
+    if attachment:
+        payload["message"] = {"attachment": attachment}
+    else:
+        payload["message"] = {"text": text}
+
+    if quick_replies:
+        payload["message"]["quick_replies"] = quick_replies
+
+    try:
+        response = requests.post(
+            url, 
+            params={"access_token": PAGE_ACCESS_TOKEN}, 
+            json=payload,
+            timeout=5  # 5 second timeout
+        )
+        response.raise_for_status()
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending message to {recipient_id}: {e}")
+        return False
+
 
 
 # MESSENGER WEBHOOK
