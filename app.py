@@ -1842,10 +1842,10 @@ def logout():
 
 @app.route("/admin/refresh-menu")
 def admin_refresh_menu():
-    if request.args.get("key") != SECRET_KEY:
+    if request.args.get("key") != app.config["SECRET_KEY"]:
         return "Unauthorized", 401
 
-    setup_persistent_menu()       # ✅ CALL YOUR REAL FUNCTION
+    setup_persistent_menu()
     return "Menu refreshed"
 
 
