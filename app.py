@@ -1102,7 +1102,7 @@ def handle_user_message(sender, text):
         return
         
     if state["step"] == "ask_name":
-        state["fullname"] = text
+        state["fullname"] = text.title()  # Capitalize first letters
         
         try:
             service = services_collection.find_one(
