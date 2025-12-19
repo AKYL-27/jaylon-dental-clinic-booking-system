@@ -735,6 +735,45 @@ def send_message(recipient_id, text, quick_replies=None, attachment=None):
     requests.post(url, params={"access_token": PAGE_ACCESS_TOKEN}, json=payload)
 
 
+
+
+
+
+def send_main_menu(recipient_id):
+    url = "https://graph.facebook.com/v17.0/me/messages"
+    
+    payload = {
+        "recipient": {"id": recipient_id},
+        "message": {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "button",
+                    "text": "Please choose an option below 👇",
+                    "buttons": [
+                        {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
+                        {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
+                        {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
+                    ]
+                }
+            }
+        }
+    }
+
+    requests.post(
+        url,
+        params={"access_token": PAGE_ACCESS_TOKEN},
+        json=payload
+    )
+
+
+
+
+
+
+
+
+
 # -----------------------------
 # SEND SERVICES CAROUSEL
 # -----------------------------
@@ -1441,7 +1480,12 @@ def webhook():
 
 
                     elif "text" in message:
-                        text = message["text"].strip()
+                        text = message["text"].strip().lower()
+                    
+                        if text in ["hi", "hello", "menu", "start"]:
+                            send_main_menu(sender)
+                            return
+
                         handle_user_message(sender, text)
 
     return "OK", 200
