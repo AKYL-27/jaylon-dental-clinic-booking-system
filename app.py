@@ -1482,10 +1482,17 @@ def webhook():
                     elif "text" in message:
                         text = message["text"].strip().lower()
                     
-                        if text in ["hi", "hello", "menu", "start"]:
-                            send_main_menu(sender)
+                        # If user types MENU
+                        if text == "menu":
+                            current = user_state.get(sender, {})
+                    
+                            # Only send menu if not already shown
+                            if current.get("step") != "main_menu":
+                                send_main_menu(sender)
+                                user_state[sender] = {"step": "main_menu"}
+                    
                             return
-
+                    
                         handle_user_message(sender, text)
 
     return "OK", 200
