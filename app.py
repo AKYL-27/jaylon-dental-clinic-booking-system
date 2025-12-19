@@ -1840,6 +1840,17 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+@app.route("/admin/refresh-menu")
+def admin_refresh_menu():
+    # Use SECRET_KEY for simple protection
+    admin_key = request.args.get("key")
+    if admin_key != app.config["SECRET_KEY"]:
+        return "Unauthorized", 403
+
+    refresh_persistent_menu()
+    return "Persistent menu refreshed"
+
+
 
 # -----------------------------
 # RUN SERVER
