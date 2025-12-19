@@ -1488,7 +1488,7 @@ def send_user_appointments_carousel(sender_id):
     appointments = list(
         appointments_collection.find({
             "user_id": sender_id,
-            "status": {"$in": ["pending", "approved", "rescheduled"]}
+            "status": {"$in": ["pending", "confirmed", "approved", "rescheduled"]}
         })
     )
 
@@ -1498,9 +1498,18 @@ def send_user_appointments_carousel(sender_id):
 
     elements = []
     for appt in appointments:
+        # Show status in subtitle
+        status_emoji = {
+            "pending": "⏳ Pending",
+            "confirmed": "✅ Confirmed",
+            "approved": "✅ Approved",
+            "rescheduled": "🔄 Rescheduled"
+        }
+        status_text = status_emoji.get(appt.get("status", "pending"), "⏳ Pending")
+        
         elements.append({
             "title": appt["service"],
-            "subtitle": f"📅 {appt['date']} ⏰ {to_ampm(appt['time'])}",
+            "subtitle": f"{status_text}\n📅 {appt['date']} ⏰ {to_ampm(appt['time'])}",
             "buttons": [
                 {
                     "type": "postback",
@@ -1524,7 +1533,7 @@ def send_my_appointments_carousel(sender_id):
     appointments = list(
         appointments_collection.find({
             "user_id": sender_id,
-            "status": {"$in": ["pending", "approved", "rescheduled"]}
+            "status": {"$in": ["pending", "confirmed", "approved", "rescheduled"]}
         })
     )
 
@@ -1534,9 +1543,18 @@ def send_my_appointments_carousel(sender_id):
 
     elements = []
     for appt in appointments:
+        # Show status in subtitle
+        status_emoji = {
+            "pending": "⏳ Pending",
+            "confirmed": "✅ Confirmed",
+            "approved": "✅ Approved",
+            "rescheduled": "🔄 Rescheduled"
+        }
+        status_text = status_emoji.get(appt.get("status", "pending"), "⏳ Pending")
+        
         elements.append({
             "title": appt["service"],
-            "subtitle": f"📅 {appt['date']} ⏰ {to_ampm(appt['time'])}",
+            "subtitle": f"{status_text}\n📅 {appt['date']} ⏰ {to_ampm(appt['time'])}",
             "buttons": [
                 {
                     "type": "postback",
