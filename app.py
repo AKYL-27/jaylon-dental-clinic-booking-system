@@ -78,6 +78,38 @@ blocked_collection = db["blocked_slots"]
 print("Connected to:", DB_NAME)
 
 # -----------------------------
+# HELPER FUNCTION: GET FREE TIMES
+# -----------------------------
+def get_free_times_for_date(date):
+    """
+    Return a list of available time slots in 12-hour AM/PM format for a given date.
+    This is the internal function used by both the API endpoint and webhook.
+    """
+    # All possible clinic times in 24-hour format
+    all_times_24h = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"]
+
+    # Get booked slots
+    booked = appointments_collection.find({"date": date})
+    booked_times = [b["time"] for b in booked]
+
+    # Get blocked slots
+    blocked = blocked_collection.find({"date": date})
+    blocked_times = []
+    for b in blocked:
+        start_hour = int(b["start"].split(":")[0])
+        end_hour = int(b["end"].split(":")[0])
+        for h in range(start_hour, end_hour):
+            blocked_times.append(f"{h:02d}:00")
+
+    # Compute free times in 24-hour format
+    free_24h = [t for t in all_times_24h if t not in booked_times and t not in blocked_times]
+    
+    # ✅ Convert to 12-hour AM/PM format for display
+    free_12h = [to_ampm(t) for t in free_24h]
+
+    return free_12h
+
+# -----------------------------
 # HOME PAGE
 # -----------------------------
 from datetime import date
@@ -732,7 +764,18 @@ def send_message(recipient_id, text, quick_replies=None, attachment=None):
     if quick_replies:
         payload["message"]["quick_replies"] = quick_replies
 
-    requests.post(url, params={"access_token": PAGE_ACCESS_TOKEN}, json=payload)
+    try:
+        response = requests.post(
+            url, 
+            params={"access_token": PAGE_ACCESS_TOKEN}, 
+            json=payload,
+            timeout=5  # 5 second timeout
+        )
+        response.raise_for_status()
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending message to {recipient_id}: {e}")
+        return False
 
 
 
@@ -941,7 +984,7 @@ def handle_user_message(sender, text):
         return
 
     # -------------------------
-    # STEP 2: CHOOSE DATE - WITH TIMEOUT FIX
+    # STEP 2: CHOOSE DATE - ✅ FIXED WITH DIRECT FUNCTION CALL
     # -------------------------
     if state["step"] == "choose_date":
 
@@ -960,38 +1003,19 @@ def handle_user_message(sender, text):
 
         state["date"] = text
 
-        # ✅ FIX: Add timeout and error handling for API call
+        # ✅ FIX: Call function directly instead of HTTP request
         try:
             print(f"Fetching free times for {text}...")  # Debug log
-            resp = requests.get(
-                f"{BASE_URL}/api/free-times/{text}",
-                timeout=10  # 20 second timeout
-            )
-            resp.raise_for_status()  # Raise error for bad status codes
-            free_times = resp.json()
+            free_times = get_free_times_for_date(text)
             print(f"Got {len(free_times)} free times")  # Debug log
             
-        except requests.exceptions.Timeout:
-            print(f"Timeout fetching free times for {text}")
-            send_message(
-                sender, 
-                "⚠️ The server is taking too long to respond. Please try again in a moment."
-            )
-            send_date_quick_replies(sender)
-            return
-            
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"Error fetching free times: {e}")
             send_message(
                 sender,
                 "❌ Sorry, there was an error checking availability.\n\nPlease try selecting a different date."
             )
             send_date_quick_replies(sender)
-            return
-            
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-            send_message(sender, "❌ An unexpected error occurred. Please try again.")
             return
 
         # Check if any times are available
@@ -1000,7 +1024,7 @@ def handle_user_message(sender, text):
             send_date_quick_replies(sender)
             return
 
-        # ✅ Times are already in AM/PM format from API
+        # ✅ Times are already in AM/PM format from function
         quick_replies = [
             {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
             for time_ampm in free_times[:13]  # Limit to 13 options (Messenger limit)
@@ -1011,7 +1035,7 @@ def handle_user_message(sender, text):
         return
 
     # -------------------------
-    # STEP 2B: AWAITING MANUAL DATE ENTRY
+    # STEP 2B: AWAITING MANUAL DATE ENTRY - ✅ FIXED WITH DIRECT FUNCTION CALL
     # -------------------------
     if state["step"] == "awaiting_manual_date":
         # Validate date format
@@ -1029,28 +1053,13 @@ def handle_user_message(sender, text):
 
         state["date"] = text
         
-        # Process the date immediately with timeout protection
+        # ✅ FIX: Call function directly instead of HTTP request
         try:
             print(f"Fetching free times for manual date {text}...")
-            resp = requests.get(
-                f"{BASE_URL}/api/free-times/{text}",
-                timeout=10
-            )
-            resp.raise_for_status()
-            free_times = resp.json()
+            free_times = get_free_times_for_date(text)
             print(f"Got {len(free_times)} free times")
             
-        except requests.exceptions.Timeout:
-            print(f"Timeout fetching free times for manual date {text}")
-            send_message(
-                sender,
-                "⚠️ The server is taking too long to respond. Please try again in a moment."
-            )
-            state["step"] = "choose_date"
-            send_date_quick_replies(sender)
-            return
-            
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"Error fetching free times for manual date: {e}")
             send_message(
                 sender,
@@ -1066,7 +1075,7 @@ def handle_user_message(sender, text):
             send_date_quick_replies(sender)
             return
 
-        # ✅ Times are already in AM/PM format from API
+        # ✅ Times are already in AM/PM format from function
         quick_replies = [
             {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
             for time_ampm in free_times[:13]  # Limit to 13 options
@@ -1194,7 +1203,7 @@ def handle_user_message(sender, text):
         return
 
     # -------------------------
-    # RESCHEDULE
+    # RESCHEDULE - ✅ FIXED WITH DIRECT FUNCTION CALL
     # -------------------------
     if state["step"] == "choose_new_date":
         # Validate date format
@@ -1206,11 +1215,10 @@ def handle_user_message(sender, text):
             
         state["new_date"] = text
         
+        # ✅ FIX: Call function directly instead of HTTP request
         try:
-            resp = requests.get(f"{BASE_URL}/api/free-times/{text}", timeout=10)
-            resp.raise_for_status()
-            free_times = resp.json()
-        except requests.exceptions.RequestException as e:
+            free_times = get_free_times_for_date(text)
+        except Exception as e:
             print(f"Error fetching times for reschedule: {e}")
             send_message(sender, "❌ Error checking availability. Please try again.")
             return
@@ -1291,38 +1299,6 @@ def handle_user_message(sender, text):
     # FALLBACK
     # -------------------------
     send_message(sender, "Hi! 👋 Tap **Book Appointment** from the menu to get started 😊")
-
-
-# -------------------------
-# IMPROVED SEND MESSAGE WITH TIMEOUT
-# -------------------------
-def send_message(recipient_id, text, quick_replies=None, attachment=None):
-    """
-    Send a text message, optional quick replies or attachment to Messenger.
-    """
-    url = "https://graph.facebook.com/v17.0/me/messages"
-    payload = {"recipient": {"id": recipient_id}}
-
-    if attachment:
-        payload["message"] = {"attachment": attachment}
-    else:
-        payload["message"] = {"text": text}
-
-    if quick_replies:
-        payload["message"]["quick_replies"] = quick_replies
-
-    try:
-        response = requests.post(
-            url, 
-            params={"access_token": PAGE_ACCESS_TOKEN}, 
-            json=payload,
-            timeout=5  # 5 second timeout
-        )
-        response.raise_for_status()
-        return True
-    except requests.exceptions.RequestException as e:
-        print(f"Error sending message to {recipient_id}: {e}")
-        return False
 
 
 
@@ -1831,31 +1807,11 @@ def calendar_events():
 @app.route("/api/free-times/<date>")
 def free_times(date):
     """
-    Return a list of available time slots in 12-hour AM/PM format for a given date.
+    API endpoint that returns available time slots for a given date.
+    Calls the helper function to do the actual work.
     """
-    # All possible clinic times in 24-hour format
-    all_times_24h = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"]
-
-    # Get booked slots
-    booked = appointments_collection.find({"date": date})
-    booked_times = [b["time"] for b in booked]
-
-    # Get blocked slots
-    blocked = blocked_collection.find({"date": date})
-    blocked_times = []
-    for b in blocked:
-        start_hour = int(b["start"].split(":")[0])
-        end_hour = int(b["end"].split(":")[0])
-        for h in range(start_hour, end_hour):
-            blocked_times.append(f"{h:02d}:00")
-
-    # Compute free times in 24-hour format
-    free_24h = [t for t in all_times_24h if t not in booked_times and t not in blocked_times]
-    
-    # ✅ Convert to 12-hour AM/PM format for display
-    free_12h = [to_ampm(t) for t in free_24h]
-
-    return jsonify(free_12h)
+    free_times_list = get_free_times_for_date(date)
+    return jsonify(free_times_list)
 
 
 @app.route("/api/unblock", methods=["POST"])
