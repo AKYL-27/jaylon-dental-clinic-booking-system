@@ -965,7 +965,7 @@ def handle_user_message(sender, text):
             print(f"Fetching free times for {text}...")  # Debug log
             resp = requests.get(
                 f"{BASE_URL}/api/free-times/{text}",
-                timeout=20  # 20 second timeout
+                timeout=10  # 20 second timeout
             )
             resp.raise_for_status()  # Raise error for bad status codes
             free_times = resp.json()
