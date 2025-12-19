@@ -1298,7 +1298,7 @@ def handle_user_message(sender, text):
     # -------------------------
     # FALLBACK
     # -------------------------
-    send_message(sender, "Hi! 👋 Tap **Book Appointment** from the menu to get started 😊")
+    send_message(sender, "Hi! 👋 Type 'menu' or 'book' to get started, or tap the menu icon below! 😊")
 
 
 
@@ -1458,8 +1458,9 @@ def webhook():
                     elif "text" in message:
                         text = message["text"].strip().lower()
                     
-                        # If user types MENU
-                        if text == "menu":
+                        # Show menu for common trigger words
+                        menu_triggers = ["menu", "hi", "hello", "book", "appointment", "start", "help"]
+                        if text in menu_triggers:
                             current = user_state.get(sender, {})
                     
                             # Only send menu if not already shown
@@ -1467,7 +1468,7 @@ def webhook():
                                 send_main_menu(sender)
                                 user_state[sender] = {"step": "main_menu"}
                     
-                            return
+                            continue  # Changed from return to continue
                     
                         handle_user_message(sender, text)
 
