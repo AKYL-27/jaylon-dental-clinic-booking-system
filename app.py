@@ -817,6 +817,7 @@ def send_main_menu(recipient_id):
 
 
 
+
 # -----------------------------
 # SEND SERVICES CAROUSEL
 # -----------------------------
@@ -1581,10 +1582,11 @@ def send_my_appointments_carousel(sender_id):
 
 
 # -----------------------------
-# PERSISTENT MENU
+# PERSISTENT MENU SETUP
 # -----------------------------
 
 def setup_persistent_menu():
+    """Setup persistent menu for ALL Messenger users"""
     url = f"https://graph.facebook.com/v17.0/me/messenger_profile?access_token={PAGE_ACCESS_TOKEN}"
 
     menu = {
@@ -1596,24 +1598,63 @@ def setup_persistent_menu():
                     {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
                     {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
                     {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
-                    {"type": "postback", "title": "📞 Contact Us", "payload": "CONTACT_US"},
-                ]
-            },
-            {
-                "locale": "en_US", 
-                "composer_input_disabled": False,
-                "call_to_actions": [
-                    {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
-                    {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
-                    {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
-                    {"type": "postback", "title": "📞 Contact Us", "payload": "CONTACT_US"},
+                    {"type": "postback", "title": "📍 Contact Info", "payload": "CONTACT_US"},
                 ]
             }
         ]
     }
 
-    res = requests.post(url, json=menu)
-    print("MENU RESPONSE:", res.json())
+    try:
+        res = requests.post(url, json=menu, timeout=10)
+        res.raise_for_status()
+        print("✅ Persistent menu setup successful:", res.json())
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error setting up persistent menu: {e}")
+        return False
+
+
+# -----------------------------
+# NEW ROUTES FOR MENU MANAGEMENT
+# -----------------------------
+
+@app.route("/setup-menu")
+def setup_menu():
+    """Public route to setup persistent menu"""
+    success = setup_persistent_menu()
+    if success:
+        return "✅ Persistent menu installed successfully! All users will now see it.", 200
+    else:
+        return "❌ Failed to install persistent menu. Check logs for details.", 500
+
+
+@app.route("/check-menu")
+def check_menu():
+    """Check if persistent menu is installed on Facebook"""
+    url = f"https://graph.facebook.com/v17.0/me/messenger_profile?fields=persistent_menu&access_token={PAGE_ACCESS_TOKEN}"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if "data" in data and len(data["data"]) > 0:
+            return jsonify({
+                "success": True,
+                "message": "✅ Persistent menu is installed and active",
+                "menu": data["data"]
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "❌ No persistent menu found. Visit /setup-menu to install it."
+            })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        })
+
 
 def notify_payment_declined(appointment, reason):
     """
@@ -1676,15 +1717,9 @@ def decline_payment():
         print("DECLINE PAYMENT ERROR:", e)
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route("/setup-menu")
-def setup_menu():
-    setup_persistent_menu()
-    return "Persistent menu installed!"
-
-
 
 # -----------------------------
-# SERVICES
+# SERVICES MANAGEMENT
 # -----------------------------
 
 @app.route("/get-services")
@@ -1866,19 +1901,32 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-@app.route("/admin/refresh-menu")
-def admin_refresh_menu():
-    if request.args.get("key") != app.config["SECRET_KEY"]:
-        return "Unauthorized", 401
 
-    setup_persistent_menu()
-    return "Menu refreshed"
-
-
+# -----------------------------
+# INITIALIZE FACEBOOK SETUP ON STARTUP
+# -----------------------------
+def initialize_facebook_setup():
+    """Initialize Facebook Messenger settings on app startup"""
+    if not PAGE_ACCESS_TOKEN:
+        print("⚠️ Warning: PAGE_ACCESS_TOKEN not found. Skipping menu setup.")
+        return
+        
+    try:
+        success = setup_persistent_menu()
+        if success:
+            print("✅ Persistent menu initialized successfully on startup")
+        else:
+            print("⚠️ Failed to initialize persistent menu on startup")
+    except Exception as e:
+        print(f"❌ Error setting up persistent menu on startup: {e}")
 
 
 # -----------------------------
 # RUN SERVER
 # -----------------------------
 if __name__ == "__main__":
+    # Initialize Facebook menu on startup
+    initialize_facebook_setup()
+    
+    # Run the app
     app.run(debug=True)
