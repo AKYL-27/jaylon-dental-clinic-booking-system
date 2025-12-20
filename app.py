@@ -797,6 +797,7 @@ def send_main_menu(recipient_id):
                         {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
                         {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
                         {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
+                        {"type": "postback", "title": "📍 Contact Info", "payload": "CONTACT_US"},
                     ]
                 }
             }
@@ -808,7 +809,6 @@ def send_main_menu(recipient_id):
         params={"access_token": PAGE_ACCESS_TOKEN},
         json=payload
     )
-
 
 
 
