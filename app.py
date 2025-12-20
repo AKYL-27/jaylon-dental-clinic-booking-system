@@ -778,11 +778,11 @@ def send_message(recipient_id, text, quick_replies=None, attachment=None):
         return False
 
 
-
-
-
-
+# -----------------------------
+# SEND MAIN MENU (3 BUTTONS - NO CONTACT INFO)
+# -----------------------------
 def send_main_menu(recipient_id):
+    """Send main menu with only 3 buttons (Contact Info is in persistent menu)"""
     url = "https://graph.facebook.com/v17.0/me/messages"
     
     payload = {
@@ -796,8 +796,7 @@ def send_main_menu(recipient_id):
                     "buttons": [
                         {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
                         {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
-                        {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
-                        {"type": "postback", "title": "📍 Contact Info", "payload": "CONTACT_US"},
+                        {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"}
                     ]
                 }
             }
@@ -809,13 +808,6 @@ def send_main_menu(recipient_id):
         params={"access_token": PAGE_ACCESS_TOKEN},
         json=payload
     )
-
-
-
-
-
-
-
 
 
 # -----------------------------
@@ -893,9 +885,6 @@ def send_confirm_cancel(recipient_id):
         {"content_type": "text", "title": "Cancel", "payload": "CANCEL_BOOKING"}
     ]
     send_message(recipient_id, "Do you want to confirm your appointment?", quick_replies=quick_replies)
-
-
-
 
 
 def parse_date_payload(payload):
@@ -1344,7 +1333,7 @@ def webhook():
                         continue
 
                     if payload == "CONTACT_US":
-                        send_message(sender, "📍 Jaylon Dental Clinic\nStall 13 Bldg. 06 Public Market, Makilala, Philippines\n📞 +639950027408\n 📧 jaylondentalclinic.makilala@gmail.com")
+                        send_message(sender, "📍 Jaylon Dental Clinic\nStall 13 Bldg. 06 Public Market, Makilala, Philippines\n📞 +639950027408\n📧 jaylondentalclinic.makilala@gmail.com")
                         continue
 
                     if payload.startswith("SERVICE_"):
@@ -1582,11 +1571,11 @@ def send_my_appointments_carousel(sender_id):
 
 
 # -----------------------------
-# PERSISTENT MENU SETUP
+# PERSISTENT MENU WITH SUBMENU (OPTION A)
 # -----------------------------
 
 def setup_persistent_menu():
-    """Setup persistent menu for ALL Messenger users"""
+    """Setup persistent menu with submenu (supports all 4 options within Facebook limits)"""
     url = f"https://graph.facebook.com/v17.0/me/messenger_profile?access_token={PAGE_ACCESS_TOKEN}"
 
     menu = {
@@ -1595,10 +1584,32 @@ def setup_persistent_menu():
                 "locale": "default",
                 "composer_input_disabled": False,
                 "call_to_actions": [
-                    {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
-                    {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
-                    {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
-                    {"type": "postback", "title": "📍 Contact Info", "payload": "CONTACT_US"},
+                    {
+                        "type": "postback", 
+                        "title": "🗓 Book Appointment", 
+                        "payload": "BOOK_APPT"
+                    },
+                    {
+                        "type": "postback", 
+                        "title": "📋 My Appointments", 
+                        "payload": "MY_APPOINTMENTS"
+                    },
+                    {
+                        "type": "nested",
+                        "title": "📚 More Options",
+                        "call_to_actions": [
+                            {
+                                "type": "postback",
+                                "title": "🦷 View Services",
+                                "payload": "VIEW_SERVICES"
+                            },
+                            {
+                                "type": "postback",
+                                "title": "📍 Contact Info",
+                                "payload": "CONTACT_US"
+                            }
+                        ]
+                    }
                 ]
             }
         ]
@@ -1607,53 +1618,11 @@ def setup_persistent_menu():
     try:
         res = requests.post(url, json=menu, timeout=10)
         res.raise_for_status()
-        print("✅ Persistent menu setup successful:", res.json())
+        print("✅ Persistent menu with submenu setup successful:", res.json())
         return True
     except requests.exceptions.RequestException as e:
         print(f"❌ Error setting up persistent menu: {e}")
         return False
-
-
-# -----------------------------
-# NEW ROUTES FOR MENU MANAGEMENT
-# -----------------------------
-
-@app.route("/setup-menu")
-def setup_menu():
-    """Public route to setup persistent menu"""
-    success = setup_persistent_menu()
-    if success:
-        return "✅ Persistent menu installed successfully! All users will now see it.", 200
-    else:
-        return "❌ Failed to install persistent menu. Check logs for details.", 500
-
-
-@app.route("/check-menu")
-def check_menu():
-    """Check if persistent menu is installed on Facebook"""
-    url = f"https://graph.facebook.com/v17.0/me/messenger_profile?fields=persistent_menu&access_token={PAGE_ACCESS_TOKEN}"
-    
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        if "data" in data and len(data["data"]) > 0:
-            return jsonify({
-                "success": True,
-                "message": "✅ Persistent menu is installed and active",
-                "menu": data["data"]
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "message": "❌ No persistent menu found. Visit /setup-menu to install it."
-            })
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        })
 
 
 def notify_payment_declined(appointment, reason):
@@ -1716,6 +1685,48 @@ def decline_payment():
     except Exception as e:
         print("DECLINE PAYMENT ERROR:", e)
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# -----------------------------
+# MENU MANAGEMENT ROUTES
+# -----------------------------
+
+@app.route("/setup-menu")
+def setup_menu():
+    """Public route to setup persistent menu"""
+    success = setup_persistent_menu()
+    if success:
+        return "✅ Persistent menu installed successfully! All users will now see it.", 200
+    else:
+        return "❌ Failed to install persistent menu. Check logs for details.", 500
+
+
+@app.route("/check-menu")
+def check_menu():
+    """Check if persistent menu is installed on Facebook"""
+    url = f"https://graph.facebook.com/v17.0/me/messenger_profile?fields=persistent_menu&access_token={PAGE_ACCESS_TOKEN}"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if "data" in data and len(data["data"]) > 0:
+            return jsonify({
+                "success": True,
+                "message": "✅ Persistent menu is installed and active",
+                "menu": data["data"]
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "❌ No persistent menu found. Visit /setup-menu to install it."
+            })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        })
 
 
 # -----------------------------
