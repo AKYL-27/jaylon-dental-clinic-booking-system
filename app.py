@@ -797,7 +797,6 @@ def send_main_menu(recipient_id):
                         {"type": "postback", "title": "🗓 Book Appointment", "payload": "BOOK_APPT"},
                         {"type": "postback", "title": "📋 My Appointments", "payload": "MY_APPOINTMENTS"},
                         {"type": "postback", "title": "🦷 View Services", "payload": "VIEW_SERVICES"},
-                        {"type": "postback", "title": "📞 Contact Us", "payload": "CONTACT_US"}
                     ]
                 }
             }
@@ -808,17 +807,6 @@ def send_main_menu(recipient_id):
         url,
         params={"access_token": PAGE_ACCESS_TOKEN},
         json=payload
-    )
-    
-    # Send contact info as a separate message
-    send_message(
-        recipient_id,
-        "📞 **CONTACT US**\n\n"
-        "📍 Jaylon Dental Clinic\n"
-        "Stall 13 Bldg. 06 Public Market\n"
-        "Makilala, Philippines\n\n"
-        "📞 +639950027408\n"
-        "📧 jaylondentalclinic.makilala@gmail.com"
     )
 
 
