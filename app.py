@@ -1575,9 +1575,10 @@ def send_my_appointments_carousel(sender_id):
 # -----------------------------
 
 def setup_persistent_menu():
-    """Setup persistent menu with submenu (supports all 4 options within Facebook limits)"""
-    url = f"https://graph.facebook.com/v17.0/me/messenger_profile?access_token={PAGE_ACCESS_TOKEN}"
-
+    """Setup persistent menu with better error handling"""
+    url = f"https://graph.facebook.com/v17.0/me/messenger_profile"
+    
+    # Simplified 3-button menu (no nested submenu)
     menu = {
         "persistent_menu": [
             {
@@ -1585,45 +1586,46 @@ def setup_persistent_menu():
                 "composer_input_disabled": False,
                 "call_to_actions": [
                     {
-                        "type": "postback", 
-                        "title": "🗓 Book Appointment", 
+                        "type": "postback",
+                        "title": "🗓 Book Appointment",
                         "payload": "BOOK_APPT"
                     },
                     {
-                        "type": "postback", 
-                        "title": "📋 My Appointments", 
+                        "type": "postback",
+                        "title": "📋 My Appointments",
                         "payload": "MY_APPOINTMENTS"
                     },
                     {
-                        "type": "nested",
-                        "title": "📚 More Options",
-                        "call_to_actions": [
-                            {
-                                "type": "postback",
-                                "title": "🦷 View Services",
-                                "payload": "VIEW_SERVICES"
-                            },
-                            {
-                                "type": "postback",
-                                "title": "📍 Contact Info",
-                                "payload": "CONTACT_US"
-                            }
-                        ]
+                        "type": "postback",
+                        "title": "📍 Contact Info",
+                        "payload": "CONTACT_US"
                     }
                 ]
             }
         ]
     }
-
+    
     try:
-        res = requests.post(url, json=menu, timeout=10)
-        res.raise_for_status()
-        print("✅ Persistent menu with submenu setup successful:", res.json())
-        return True
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error setting up persistent menu: {e}")
+        res = requests.post(
+            url,
+            params={"access_token": PAGE_ACCESS_TOKEN},
+            json=menu,
+            timeout=10
+        )
+        
+        print(f"Menu setup response: {res.status_code}")
+        print(f"Response body: {res.text}")
+        
+        if res.status_code == 200:
+            print("✅ Persistent menu setup successful")
+            return True
+        else:
+            print(f"❌ Menu setup failed: {res.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error setting up menu: {e}")
         return False
-
 
 def notify_payment_declined(appointment, reason):
     """
