@@ -27,6 +27,21 @@
             background-color: #f8f9fa;
         }
         
+        /* Custom styling for empty table message */
+        .tabulator-placeholder {
+            padding: 40px 20px !important;
+            text-align: center;
+            font-size: 16px;
+            color: #6c757d;
+        }
+        
+        .tabulator-placeholder i {
+            font-size: 48px;
+            color: #dee2e6;
+            display: block;
+            margin-bottom: 15px;
+        }
+        
         /* ============================================
            SPACING ADJUSTMENTS - MODIFY THESE VALUES
            ============================================ */
@@ -336,6 +351,7 @@ const table = new Tabulator("#appointments-table", {
     responsiveLayout: "collapse",
     pagination: "local",
     paginationSize: 10,
+    placeholder: "<i class='fa fa-calendar-o'></i><br><strong>No appointments found</strong><br>There are currently no appointment records to display.",
 
     initialSort: [
         { column: "sort_rank", dir: "asc" },
