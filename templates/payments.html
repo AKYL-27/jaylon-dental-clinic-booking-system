@@ -26,6 +26,21 @@
         .tabulator-row:hover {
             background-color: #f8f9fa;
         }
+        
+        /* Custom styling for empty table message */
+        .tabulator-placeholder {
+            padding: 40px 20px !important;
+            text-align: center;
+            font-size: 16px;
+            color: #6c757d;
+        }
+        
+        .tabulator-placeholder i {
+            font-size: 48px;
+            color: #dee2e6;
+            display: block;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 
@@ -86,7 +101,7 @@
                     <div class="page-title">
                         <ol class="breadcrumb text-right">
                             <li><a href="#">Payments</a></li>
-                            <li class="active">Payements List</li>
+                            <li class="active">Payments List</li>
                         </ol>
                     </div>
                 </div>
@@ -236,6 +251,7 @@ new Tabulator("#payments-table", {
     pagination: "local",
     paginationSize: 10,
     responsiveLayout: "collapse",
+    placeholder: "<i class='fa fa-inbox'></i><br><strong>No payments found</strong><br>There are currently no payment records to display.",
 
     columns: [
         { title: "Patient Name", field: "fullname", headerFilter: "input" },
