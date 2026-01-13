@@ -50,7 +50,7 @@ print("PAGE_ACCESS_TOKEN loaded:", bool(PAGE_ACCESS_TOKEN))
 
 # Flask setup
 app = Flask(__name__)
-# ✅ Register filter
+# Register filter
 app.jinja_env.filters['to_ampm'] = to_ampm
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev_secret")
 
@@ -104,7 +104,7 @@ def get_free_times_for_date(date):
     # Compute free times in 24-hour format
     free_24h = [t for t in all_times_24h if t not in booked_times and t not in blocked_times]
     
-    # ✅ Convert to 12-hour AM/PM format for display
+    # Convert to 12-hour AM/PM format for display
     free_12h = [to_ampm(t) for t in free_24h]
 
     return free_12h
@@ -271,7 +271,7 @@ def dashboard():
         "payment_status": "pending"
     }))
 
-    # Fetch unread messages (optional)
+    # Fetch unread messages
     new_messages = list(messages_collection.find({"read": {"$ne": True}}))
 
     # Convert appointment times to 12-hour format
@@ -974,7 +974,7 @@ def handle_user_message(sender, text):
         return
 
     # -------------------------
-    # STEP 2: CHOOSE DATE - ✅ FIXED WITH DIRECT FUNCTION CALL
+    # STEP 2: CHOOSE DATE
     # -------------------------
     if state["step"] == "choose_date":
 
@@ -993,7 +993,6 @@ def handle_user_message(sender, text):
 
         state["date"] = text
 
-        # ✅ FIX: Call function directly instead of HTTP request
         try:
             print(f"Fetching free times for {text}...")  # Debug log
             free_times = get_free_times_for_date(text)
@@ -1014,7 +1013,7 @@ def handle_user_message(sender, text):
             send_date_quick_replies(sender)
             return
 
-        # ✅ Times are already in AM/PM format from function
+        # Times are already in AM/PM format from function
         quick_replies = [
             {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
             for time_ampm in free_times[:13]  # Limit to 13 options (Messenger limit)
@@ -1025,7 +1024,7 @@ def handle_user_message(sender, text):
         return
 
     # -------------------------
-    # STEP 2B: AWAITING MANUAL DATE ENTRY - ✅ FIXED WITH DIRECT FUNCTION CALL
+    # STEP 2B: AWAITING MANUAL DATE ENTRY
     # -------------------------
     if state["step"] == "awaiting_manual_date":
         # Validate date format
@@ -1043,7 +1042,6 @@ def handle_user_message(sender, text):
 
         state["date"] = text
         
-        # ✅ FIX: Call function directly instead of HTTP request
         try:
             print(f"Fetching free times for manual date {text}...")
             free_times = get_free_times_for_date(text)
@@ -1065,7 +1063,7 @@ def handle_user_message(sender, text):
             send_date_quick_replies(sender)
             return
 
-        # ✅ Times are already in AM/PM format from function
+        # Times in AM/PM format
         quick_replies = [
             {"content_type": "text", "title": time_ampm, "payload": f"TIME_{time_ampm}"}
             for time_ampm in free_times[:13]  # Limit to 13 options
@@ -1193,7 +1191,7 @@ def handle_user_message(sender, text):
         return
 
     # -------------------------
-    # RESCHEDULE - ✅ FIXED WITH DIRECT FUNCTION CALL
+    # RESCHEDULE
     # -------------------------
     if state["step"] == "choose_new_date":
         # Validate date format
@@ -1205,7 +1203,7 @@ def handle_user_message(sender, text):
             
         state["new_date"] = text
         
-        # ✅ FIX: Call function directly instead of HTTP request
+        # FIX: Call function directly instead of HTTP request
         try:
             free_times = get_free_times_for_date(text)
         except Exception as e:
@@ -1932,6 +1930,35 @@ def initialize_facebook_setup():
             print("⚠️ Failed to initialize persistent menu on startup")
     except Exception as e:
         print(f"❌ Error setting up persistent menu on startup: {e}")
+
+# -----------------------------
+# REPORTS and PATIENT HISTORY
+# -----------------------------
+
+@app.route('/reports')
+def reports():
+    payments = list(db.appointments.find({"payment_status": {"$exists": True}}))
+    return render_template('reports.html', payments=payments)
+
+@app.route('/patient-history')
+def patient_history():
+    appts = list(appointments_collection.find())
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # Process appointments similar to appointments() route
+    for a in appts:
+        a["_id"] = str(a["_id"])
+        
+        # Convert single service string to services array
+        if "service" in a:
+            a["services"] = [{"name": a["service"]}]
+        else:
+            a["services"] = []
+    
+    return render_template('patient_history.html', 
+                          appointments=appts,
+                          current_date=today)
+
 
 
 # -----------------------------
