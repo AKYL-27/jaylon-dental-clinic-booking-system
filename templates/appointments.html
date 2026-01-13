@@ -19,7 +19,7 @@
     <!-- TABULATOR -->
     <link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
 
-        <!-- SweetAlert2 -->
+    <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <style>
@@ -27,57 +27,30 @@
             background-color: #f8f9fa;
         }
         
-        /* Custom styling for empty table message */
-        .tabulator-placeholder {
-            padding: 40px 20px !important;
-            text-align: center;
-            font-size: 16px;
-            color: #6c757d;
+        .tabulator-row {
+            cursor: pointer;
         }
         
-        .tabulator-placeholder i {
-            font-size: 48px;
-            color: #dee2e6;
-            display: block;
-            margin-bottom: 15px;
-        }
-        
-        /* ============================================
-           SPACING ADJUSTMENTS - MODIFY THESE VALUES
-           ============================================ */
-        
-        /* Action buttons container */
-        .action-buttons {
-            white-space: nowrap;
-            display: flex;
-            gap: 6px;  /* ADJUST: Space between buttons (try: 4px, 6px, 8px, 10px) */
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-            padding: 4px;  /* ADJUST: Padding inside the container (try: 2px, 4px, 6px) */
-        }
-        
-        /* Individual button spacing and size */
-        .action-buttons .btn {
-            margin: 2px;  /* ADJUST: Extra margin around each button (try: 1px, 2px, 3px) */
-        }
-        
-        /* Button padding (affects button size) */
-        .btn-action {
-            padding: 5px 10px;  /* ADJUST: Vertical and horizontal padding (try: 4px 8px, 5px 10px, 6px 12px) */
-            font-size: 0.875rem;  /* ADJUST: Font size (try: 0.8rem, 0.875rem, 0.9rem) */
-            line-height: 1.2;
-            min-width: 32px;  /* ADJUST: Minimum button width (try: 28px, 32px, 36px) */
-        }
-        
-        /* Row height */
         .tabulator .tabulator-row {
-            min-height: 45px;  /* ADJUST: Row height (try: 40px, 45px, 50px) */
+            min-height: 45px;
         }
         
-        /* Cell padding */
         .tabulator .tabulator-cell {
-            padding: 10px 15px;  /* More breathing room */  /* ADJUST: Cell padding (try: 6px, 8px, 10px) */
+            padding: 10px 15px;
+        }
+
+        /* Modal action buttons styling */
+        .modal-action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .modal-action-buttons .btn {
+            min-width: 120px;
         }
     </style>
 </head>
@@ -94,6 +67,9 @@
                 <li class="active"><a href="{{url_for('appointments')}}"><i class="menu-icon fa fa-check-square-o"></i>Appointments</a></li>
                 <li><a href="{{url_for('payments')}}"><i class="menu-icon fa fa-credit-card"></i>Payments</a></li>
                 <li><a href="{{url_for('services')}}"><i class="menu-icon fa fa-pencil-square-o"></i>Services</a></li>
+                <li><a href="{{url_for('patient_history')}}"><i class="menu-icon fa fa-history"></i>Patient History</a></li>
+                <li><a href="{{ url_for('reports') }}"><i class="menu-icon fa fa-bar-chart"></i>Reports</a></li>
+
                 <li><a href="{{ url_for('calendar') }}"><i class="menu-icon fa fa-calendar"></i>Calendar</a></li>
             </ul>
         </div>
@@ -103,170 +79,174 @@
 <!-- RIGHT PANEL -->
 <div id="right-panel" class="right-panel">
 
-        <header id="header" class="header">
-            <div class="top-left">
-                <div class="navbar-header">
-                    <a class="navbar-brand" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo.png')}}" alt="Logo"></a>
-                    <a class="navbar-brand hidden" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo2.png')}}" alt="Logo"></a>
-                    <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
+    <header id="header" class="header">
+        <div class="top-left">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo.png')}}" alt="Logo"></a>
+                <a class="navbar-brand hidden" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo2.png')}}" alt="Logo"></a>
+                <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
+            </div>
+        </div>
+        <div class="top-right">
+            <div class="header-menu">
+                <div class="user-area dropdown float-right">
+                    <a href="#" class="dropdown-toggle active" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <img class="user-avatar rounded-circle" src="{{ url_for('static', filename='assets/images/default-profile.png') }}" alt="User Avatar">
+                    </a>
+                    <div class="user-menu dropdown-menu">
+                        <a class="nav-link" href="#"><i class="fa fa-user"></i>My Profile</a>
+                        <a class="nav-link" href="#"><i class="fa fa-power-off"></i>Logout</a>
+                    </div>
                 </div>
             </div>
-            <div class="top-right">
-                <div class="header-menu">
+        </div>
+    </header>
 
-                    <div class="user-area dropdown float-right">
-                        <a href="#" class="dropdown-toggle active" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <img class="user-avatar rounded-circle" src="{{ url_for('static', filename='assets/images/default-profile.png') }}" alt="User Avatar">
-                        </a>
-
-                        <div class="user-menu dropdown-menu">
-                            <a class="nav-link" href="{{url_for ('profile')}}"><i class="fa fa- user"></i>My Profile</a>
-                            <a class="nav-link" href="{{ url_for('logout') }}"><i class="fa fa-power -off"></i>Logout</a>
+    <div class="breadcrumbs">
+        <div class="breadcrumbs-inner">
+            <div class="row m-0">
+                <div class="col-sm-4">
+                    <h1>Appointments</h1>
+                </div>
+                <div class="col-sm-8">
+                    <div class="page-header float-right">
+                        <div class="page-title">
+                            <ol class="breadcrumb text-right">
+                                <li><a href="#">Appointments</a></li>
+                                <li class="active">Appointments List</li>
+                            </ol>
                         </div>
                     </div>
                 </div>
             </div>
-        </header><!-- /header -->
+        </div>
+    </div>
 
-<div class="breadcrumbs">
-    <div class="breadcrumbs-inner">
-        <div class="row m-0">
-            <div class="col-sm-4">
-                <h1>Appointments</h1>
-            </div>
-            <div class="col-sm-8">
-                <div class="page-header float-right">
-                    <div class="page-title">
-                        <ol class="breadcrumb text-right">
-                            <li><a href="#">Appointments</a></li>
-                            <li class="active">Appointments List</li>
-                        </ol>
-                    </div>
+    <div class="content">
+        <div class="animated fadeIn">
+            <div class="card">
+                <div class="card-header">
+                    <strong class="card-title">Appointments List</strong>
+                </div>
+                <div class="card-body">
+                    <div id="appointments-table"></div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="content">
-<div class="animated fadeIn">
-
-<div class="card">
-    <div class="card-header">
-        <strong class="card-title">Appointments List</strong>
-    </div>
-
-    <div class="card-body">
-        <!-- TABULATOR TABLE -->
-        <div id="appointments-table"></div>
-    </div>
-</div>
-
-</div>
-</div>
-
-<footer class="site-footer">
-    <div class="footer-inner bg-white">
-        <div class="row">
-            <div class="col-sm-6">Copyright © 2025 Jaylon Dental Clinic</div>
+    <footer class="site-footer">
+        <div class="footer-inner bg-white">
+            <div class="row">
+                <div class="col-sm-6">Copyright © 2025 Jaylon Dental Clinic</div>
+            </div>
         </div>
-    </div>
-</footer>
+    </footer>
 
 </div>
 
 <!-- ================= MODALS ================= -->
 
-<!-- RESCHEDULE -->
-<div class="modal fade" id="rescheduleModal" tabindex="-1">
-  <div class="modal-dialog">
-    <form id="rescheduleForm" class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">🔁 Reschedule Appointment</h5>
-        <button type="button" class="close" data-dismiss="modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" name="appt_id" id="rescheduleApptId">
-        <div class="form-group">
-          <label>New Date</label>
-          <input type="date" name="date" id="rescheduleDate" class="form-control" required>
-        </div>
-        <div class="form-group">
-          <label>New Time</label>
-          <input type="time" name="time" id="rescheduleTime" class="form-control" required>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-<!-- CANCEL -->
-<div class="modal fade" id="cancelModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
-    <form id="cancelForm" class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title">Cancel Appointment</h5>
-        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-      </div>
-      <div class="modal-body text-center">
-        <input type="hidden" name="appt_id" id="cancelApptId">
-        <p>Are you sure you want to cancel?</p>
-      </div>
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-danger">Yes, Cancel</button>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-      </div>
-    </form>
-  </div>
-</div>
 <!-- APPOINTMENT DETAILS MODAL -->
 <div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
-  <div class="modal-dialog modal-md">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">📋 Appointment Details</h5>
-        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="row">
-          <div class="col-md-6">
-            <p><strong>Patient Name:</strong> <span id="detailFullname"></span></p>
-            <p><strong>Date:</strong> <span id="detailDate"></span></p>
-            <p><strong>Time:</strong> <span id="detailTime"></span></p>
-            <p><strong>Status:</strong> <span id="detailStatus"></span></p>
-          </div>
-          <div class="col-md-6">
-            <p><strong>Service:</strong> <span id="detailService"></span></p>
-            <p><strong>Down Payment:</strong> ₱<span id="detailDownpayment"></span></p>
-            <p><strong>Payment Method:</strong> <span id="detailPaymentMethod"></span></p>
-            <p><strong>Payment Status:</strong> <span id="detailPaymentStatus"></span></p>
-          </div>
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">📋 Appointment Details</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Patient Name:</strong> <span id="detailFullname"></span></p>
+                        <p><strong>Date:</strong> <span id="detailDate"></span></p>
+                        <p><strong>Time:</strong> <span id="detailTime"></span></p>
+                        <p><strong>Status:</strong> <span id="detailStatus"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Service:</strong> <span id="detailService"></span></p>
+                        <p><strong>Down Payment:</strong> ₱<span id="detailDownpayment"></span></p>
+                        <p><strong>Payment Method:</strong> <span id="detailPaymentMethod"></span></p>
+                        <p><strong>Payment Status:</strong> <span id="detailPaymentStatus"></span></p>
+                    </div>
+                </div>
+
+                <!-- ACTION BUTTONS (only shown if not Done/Cancelled) -->
+                <div id="modalActionButtons" class="modal-action-buttons" style="display: none;">
+                    <button type="button" class="btn btn-warning" id="btnModalReschedule">
+                        <i class="fa fa-calendar"></i> Reschedule
+                    </button>
+                    <button type="button" class="btn btn-success" id="btnModalMarkDone" style="display: none;">
+                        <i class="fa fa-check"></i> Mark as Done
+                    </button>
+                    <button type="button" class="btn btn-danger" id="btnModalCancel">
+                        <i class="fa fa-times"></i> Cancel Appointment
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-      </div>
     </div>
-  </div>
+</div>
+
+<!-- RESCHEDULE MODAL -->
+<div class="modal fade" id="rescheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="rescheduleForm" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🔁 Reschedule Appointment</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="appt_id" id="rescheduleApptId">
+                <div class="form-group">
+                    <label>New Date</label>
+                    <input type="date" name="date" id="rescheduleDate" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>New Time</label>
+                    <input type="time" name="time" id="rescheduleTime" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- CANCEL CONFIRMATION MODAL -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <form id="cancelForm" class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Cancel Appointment</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <input type="hidden" name="appt_id" id="cancelApptId">
+                <p>Are you sure you want to cancel this appointment?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-danger">Yes, Cancel</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- ================= SCRIPTS ================= -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@2.2.4/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.4/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"></script>
-
-
-<!-- TABULATOR -->
 <script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
-<!-- SweetAlert2 JS - ADD THIS LINE -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-
 <script>
-    // Toast notification helpers
+// Toast notification helpers
 function showToastSuccess(title) {
     Swal.fire({ 
         icon: 'success', 
@@ -288,9 +268,11 @@ function showToastError(title) {
         timer: 1800 
     });
 }
-// DATA
+
+// DATA - Filter out appointments with pending payment status
 const appointmentsData = [
 {% for appt in appointments %}
+{% if appt.payment_status and appt.payment_status.lower() != 'pending' %}
 {
     id: "{{ appt._id }}",
     fullname: "{{ appt.fullname }}",
@@ -308,11 +290,17 @@ const appointmentsData = [
     payment_status: "{{ appt.payment_status | default('pending') }}",
     payment_proof: "{{ appt.payment_proof | default('') }}"
 },
+{% endif %}
 {% endfor %}
 ];
 
+// Store current appointment data globally for modal actions
+let currentAppointment = null;
+
 // SHOW APPOINTMENT DETAILS FUNCTION
 function showAppointmentDetails(data) {
+    currentAppointment = data;
+    
     $("#detailFullname").text(data.fullname);
     $("#detailDate").text(data.date);
     $("#detailTime").text(data.time);
@@ -333,12 +321,18 @@ function showAppointmentDetails(data) {
     const paymentBadge = data.payment_status === "approved" ? "success" : "warning";
     $("#detailPaymentStatus").html('<span class="badge badge-' + paymentBadge + '">' + data.payment_status.toUpperCase() + '</span>');
     
-    // Payment proof image
-    if (data.payment_proof && data.payment_proof !== '') {
-        $("#detailPaymentProofImg").attr("src", data.payment_proof);
-        $("#detailPaymentProof").show();
+    // Show/hide action buttons based on status
+    if (data.status === "Done" || data.status === "Cancelled") {
+        $("#modalActionButtons").hide();
     } else {
-        $("#detailPaymentProof").hide();
+        $("#modalActionButtons").show();
+        
+        // Show "Mark as Done" button only if status is Waiting and is today
+        if (data.is_today && data.status === "Waiting") {
+            $("#btnModalMarkDone").show();
+        } else {
+            $("#btnModalMarkDone").hide();
+        }
     }
     
     $("#appointmentDetailsModal").modal("show");
@@ -351,7 +345,6 @@ const table = new Tabulator("#appointments-table", {
     responsiveLayout: "collapse",
     pagination: "local",
     paginationSize: 10,
-    placeholder: "<i class='fa fa-calendar-o'></i><br><strong>No appointments found</strong><br>There are currently no appointment records to display.",
 
     initialSort: [
         { column: "sort_rank", dir: "asc" },
@@ -390,52 +383,58 @@ const table = new Tabulator("#appointments-table", {
         { 
             title: "Actions",
             hozAlign: "center",
-            minWidth: 200, // ADJUST: Minimum width for actions column (try: 180, 200, 220)
-            widthGrow: 2.5, // ADJUST: Growth priority (try: 2, 2.5, 3)
+            minWidth: 100,
+            widthGrow: 1,
             formatter: function(cell){
-                const r = cell.getRow().getData();
-
-                if (r.status === "Done" || r.status === "Cancelled") {
-                    return '<span class="text-muted">—</span>';
-                }
-
-                let buttons = '<div class="action-buttons">';
-                buttons += '<button class="btn btn-sm btn-warning btn-action btn-reschedule" data-id="' + r.id + '" data-date="' + r.date + '" data-time="' + r.time24 + '" title="Reschedule">🔁</button>';
-                buttons += '<button class="btn btn-sm btn-danger btn-action btn-cancel" data-id="' + r.id + '" title="Cancel">❌</button>';
-
-                if (r.is_today && r.status === "Waiting") {
-                    buttons += '<button class="btn btn-sm btn-success btn-action" onclick="markDone(\'' + r.id + '\'); event.stopPropagation();" title="Mark as Done">✔</button>';
-                }
-                buttons += '</div>';
-
-                return buttons;
+                return '<button class="btn btn-sm btn-primary btn-view" title="View Details"><i class="fa fa-eye"></i> View</button>';
             }
         }
     ]
 });
 
-// Wait for table to be built, then attach row click event
+// Row click event to show details
 table.on("tableBuilt", function(){
     table.on("rowClick", function(e, row){
-        // Check if click is on a button or inside a button
-        const isButton = e.target.tagName === 'BUTTON' || 
-                        e.target.closest('button') !== null ||
-                        e.target.classList.contains('btn') ||
-                        e.target.closest('.btn') !== null;
-        
-        if (isButton) {
-            return;
-        }
-        
         const data = row.getData();
         showAppointmentDetails(data);
     });
 });
 
-// Add CSS to show rows are clickable
-const style = document.createElement('style');
-style.textContent = '.tabulator-row { cursor: pointer; } .tabulator-row:hover { background-color: #f0f8ff !important; }';
-document.head.appendChild(style);
+// MODAL ACTION BUTTON HANDLERS
+$("#btnModalReschedule").on("click", function() {
+    if (currentAppointment) {
+        // Hide details modal first
+        $("#appointmentDetailsModal").modal("hide");
+        
+        // Wait for modal to finish hiding, then open reschedule modal
+        setTimeout(function() {
+            $("#rescheduleApptId").val(currentAppointment.id);
+            $("#rescheduleDate").val(currentAppointment.date);
+            $("#rescheduleTime").val(currentAppointment.time24);
+            $("#rescheduleModal").modal("show");
+        }, 500);
+    }
+});
+
+$("#btnModalMarkDone").on("click", function() {
+    if (currentAppointment) {
+        $("#appointmentDetailsModal").modal("hide");
+        markDone(currentAppointment.id);
+    }
+});
+
+$("#btnModalCancel").on("click", function() {
+    if (currentAppointment) {
+        // Hide details modal first
+        $("#appointmentDetailsModal").modal("hide");
+        
+        // Wait for modal to finish hiding, then open cancel modal
+        setTimeout(function() {
+            $("#cancelApptId").val(currentAppointment.id);
+            $("#cancelModal").modal("show");
+        }, 500);
+    }
+});
 
 // MARK DONE function
 function markDone(appointmentId) {
@@ -471,21 +470,6 @@ function markDone(appointmentId) {
     });
 }
 
-// RESCHEDULE / CANCEL buttons
-$(document).on("click", ".btn-reschedule", function (e) {
-    e.stopPropagation();
-    $("#rescheduleApptId").val($(this).data("id"));
-    $("#rescheduleDate").val($(this).data("date"));
-    $("#rescheduleTime").val($(this).data("time"));
-    $("#rescheduleModal").modal("show");
-});
-
-$(document).on("click", ".btn-cancel", function (e) {
-    e.stopPropagation();
-    $("#cancelApptId").val($(this).data("id"));
-    $("#cancelModal").modal("show");
-});
-
 // RESCHEDULE FORM HANDLER
 $("#rescheduleForm").on("submit", function(e) {
     e.preventDefault();
@@ -514,7 +498,6 @@ $("#rescheduleForm").on("submit", function(e) {
         }
     });
 });
-
 
 // CANCEL FORM HANDLER
 $("#cancelForm").on("submit", function(e) {
@@ -545,24 +528,17 @@ $("#cancelForm").on("submit", function(e) {
     });
 });
 
-// Clean up modal backdrop
-$('#rescheduleModal, #cancelModal, #appointmentDetailsModal').on('hidden.bs.modal', function() {
+// Clean up modal backdrop - but keep backdrop when transitioning between modals
+$('#appointmentDetailsModal').on('hidden.bs.modal', function() {
+    // Don't remove backdrop if we're about to open another modal
+    // The setTimeout in the button handlers will open the next modal
+});
+
+$('#rescheduleModal, #cancelModal').on('hidden.bs.modal', function() {
     $('body').removeClass('modal-open');
     $('.modal-backdrop').remove();
 });
 </script>
 
-
-
-
-
-
-<script>
-console.log("jQuery loaded:", typeof $ !== 'undefined');
-console.log("Bootstrap loaded:", typeof $.fn.modal !== 'undefined');
-
-// Test if modal exists
-console.log("Modal exists:", $("#appointmentDetailsModal").length > 0);
-</script>
 </body>
 </html>
