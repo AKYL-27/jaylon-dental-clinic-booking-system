@@ -1,0 +1,451 @@
+<!doctype html>
+<html class="no-js" lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Patient History - Jaylon Dental Clinic</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="icon" href="{{ url_for('static', filename='assets/images/clinic-logo2.png') }}" type="image/x-icon"/>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/normalize.css@8.0.0/normalize.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/cs-skin-elastic.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/style.css') }}">
+
+    <!-- TABULATOR -->
+    <link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator_bootstrap4.min.css" rel="stylesheet">
+
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+    <style>
+        .tabulator-row:hover {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .patient-summary-card {
+            background: linear-gradient(135deg, #84c4f8ff 0%, #33adf3ff 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .stat-number {
+            font-size: 1rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.95rem;
+            opacity: 0.95;
+            font-weight: 500;
+        }
+        
+        .timeline-item {
+            border-left: 3px solid #006ac1ff;
+            padding-left: 20px;
+            padding-bottom: 20px;
+            position: relative;
+        }
+        
+        .timeline-item:before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background: #33adf3ff;
+            border-radius: 50%;
+            position: absolute;
+            left: -7.5px;
+            top: 5px;
+        }
+        
+        .timeline-item:last-child {
+            border-left: 3px solid transparent;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-action {
+            padding: 5px 10px;
+            font-size: 0.875rem;
+            line-height: 1.2;
+            min-width: 32px;
+        }
+
+        .modal-body {
+            position: relative;
+            -ms-flex: 1 1 auto;
+            flex: 1 1 auto;
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- LEFT PANEL -->
+<aside id="left-panel" class="left-panel">
+    <nav class="navbar navbar-expand-sm navbar-default">
+        <div id="main-menu" class="main-menu collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="{{url_for('index')}}"><i class="menu-icon fa fa-laptop"></i>Dashboard</a></li>
+                <li class="menu-title">Components</li>
+                <li><a href="{{url_for('appointments')}}"><i class="menu-icon fa fa-check-square-o"></i>Appointments</a></li>
+                <li><a href="{{url_for('payments')}}"><i class="menu-icon fa fa-credit-card"></i>Payments</a></li>
+                <li><a href="{{url_for('services')}}"><i class="menu-icon fa fa-pencil-square-o"></i>Services</a></li>
+                <li class="active"><a href="{{url_for('patient_history')}}"><i class="menu-icon fa fa-history"></i>Patient History</a></li>
+                <li><a href="{{ url_for('reports') }}"><i class="menu-icon fa fa-bar-chart"></i>Reports</a></li>
+                <li><a href="{{ url_for('calendar') }}"><i class="menu-icon fa fa-calendar"></i>Calendar</a></li>
+            </ul>
+        </div>
+    </nav>
+</aside>
+
+<!-- RIGHT PANEL -->
+<div id="right-panel" class="right-panel">
+
+    <header id="header" class="header">
+        <div class="top-left">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo.png')}}" alt="Logo"></a>
+                <a class="navbar-brand hidden" href="./"><img src="{{url_for('static', filename='assets/images/clinic-logo2.png')}}" alt="Logo"></a>
+                <a id="menuToggle" class="menutoggle"><i class="fa fa-bars"></i></a>
+            </div>
+        </div>
+        <div class="top-right">
+            <div class="header-menu">
+                <div class="user-area dropdown float-right">
+                    <a href="#" class="dropdown-toggle active" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <img class="user-avatar rounded-circle" src="{{ url_for('static', filename='assets/images/default-profile.png') }}" alt="User Avatar">
+                    </a>
+                    <div class="user-menu dropdown-menu">
+                        <a class="nav-link" href="#"><i class="fa fa-user"></i>My Profile</a>
+                        <a class="nav-link" href="#"><i class="fa fa-power-off"></i>Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="breadcrumbs">
+        <div class="breadcrumbs-inner">
+            <div class="row m-0">
+                <div class="col-sm-4">
+                    <h1>Patient History</h1>
+                </div>
+                <div class="col-sm-8">
+                    <div class="page-header float-right">
+                        <div class="page-title">
+                            <ol class="breadcrumb text-right">
+                                <li><a href="#">Patients</a></li>
+                                <li class="active">Patient History</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="animated fadeIn">
+
+            <div class="card">
+                <div class="card-header">
+                    <strong class="card-title">Patient Records</strong>
+                </div>
+                <div class="card-body">
+                    <!-- TABULATOR TABLE -->
+                    <div id="patients-table"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner bg-white">
+            <div class="row">
+                <div class="col-sm-6">Copyright © 2025 Jaylon Dental Clinic</div>
+            </div>
+        </div>
+    </footer>
+
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- PATIENT HISTORY DETAILS MODAL -->
+<div class="modal fade" id="patientHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">👤 Patient History: <span id="patientName"></span></h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Patient Summary -->
+                <div class="patient-summary-card">
+                    <div class="row">
+                        <div class="col-md-4 stat-box">
+                            <span class="stat-number" id="totalVisits">0</span>
+                            <span class="stat-label">Total Visits</span>
+                        </div>
+                        <div class="col-md-4 stat-box">
+                            <span class="stat-number" id="completedVisits">0</span>
+                            <span class="stat-label">Completed</span>
+                        </div>
+                        <div class="col-md-4 stat-box">
+                            <span class="stat-number" id="lastVisit">-</span>
+                            <span class="stat-label">Last Visit</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointment History Timeline -->
+                <h6 class="mt-4 mb-3"><i class="fa fa-history"></i> Appointment Timeline</h6>
+                <div id="appointmentTimeline" class="mt-3">
+                    <!-- Timeline items will be inserted here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= SCRIPTS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@2.2.4/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.4/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"></script>
+<script src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+// Sample data - Replace with actual data from your backend
+const appointmentsData = [
+    {% for appt in appointments %}
+    {
+        id: "{{ appt._id }}",
+        fullname: "{{ appt.fullname }}",
+        date: "{{ appt.date }}",
+        time: "{{ appt.time | to_ampm }}",
+        status: "{% if appt.status and appt.status.lower() == 'done' %}Done{% elif appt.status and appt.status.lower() == 'cancelled' %}Cancelled{% elif appt.date == current_date %}Waiting{% elif appt.date < current_date %}Done{% else %}Upcoming{% endif %}",
+        services: "{% if appt.services %}{% for s in appt.services %}{{ s.name }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}",
+        service_full: "{{ appt.service | default('') }}",
+        downpayment: {{ appt.downpayment | default(0) }},
+        payment_method: "{{ appt.payment_method | default('N/A') }}",
+        payment_status: "{{ appt.payment_status | default('pending') }}"
+    },
+    {% endfor %}
+];
+
+// Debug: Log the first appointment to see the data structure
+console.log('First appointment data:', appointmentsData[0]);
+
+// Group appointments by patient
+function groupByPatient(appointments) {
+    const grouped = {};
+    
+    appointments.forEach(appt => {
+        if (!grouped[appt.fullname]) {
+            grouped[appt.fullname] = {
+                fullname: appt.fullname,
+                appointments: [],
+                totalVisits: 0,
+                completedVisits: 0,
+                cancelledVisits: 0,
+                totalSpent: 0,
+                lastVisit: null
+            };
+        }
+        
+        grouped[appt.fullname].appointments.push(appt);
+        grouped[appt.fullname].totalVisits++;
+        
+        if (appt.status === 'Done') {
+            grouped[appt.fullname].completedVisits++;
+            grouped[appt.fullname].totalSpent += parseFloat(appt.downpayment) || 0;
+        }
+        
+        if (appt.status === 'Cancelled') {
+            grouped[appt.fullname].cancelledVisits++;
+        }
+        
+        // Track last visit (most recent date)
+        if (!grouped[appt.fullname].lastVisit || appt.date > grouped[appt.fullname].lastVisit) {
+            grouped[appt.fullname].lastVisit = appt.date;
+        }
+    });
+    
+    return Object.values(grouped);
+}
+
+const patientsData = groupByPatient(appointmentsData);
+
+// TABULATOR TABLE
+const table = new Tabulator("#patients-table", {
+    data: patientsData,
+    layout: "fitDataStretch",
+    responsiveLayout: "collapse",
+    pagination: "local",
+    paginationSize: 15,
+    initialSort: [
+        { column: "totalVisits", dir: "desc" }
+    ],
+    columns: [
+        { 
+            title: "Patient Name", 
+            field: "fullname", 
+            headerFilter: "input",
+            widthGrow: 2
+        },
+        { 
+            title: "Total Visits", 
+            field: "totalVisits", 
+            sorter: "number",
+            widthGrow: 1,
+            hozAlign: "center"
+        },
+        { 
+            title: "Completed", 
+            field: "completedVisits", 
+            sorter: "number",
+            widthGrow: 1,
+            hozAlign: "center",
+            formatter: function(cell) {
+                const value = cell.getValue();
+                return value > 0 ? '<span class="badge badge-success">' + value + '</span>' : '<span class="text-muted">0</span>';
+            }
+        },
+        { 
+            title: "Cancelled", 
+            field: "cancelledVisits", 
+            sorter: "number",
+            widthGrow: 1,
+            hozAlign: "center",
+            formatter: function(cell) {
+                const value = cell.getValue();
+                return value > 0 ? '<span class="badge badge-danger">' + value + '</span>' : '<span class="text-muted">0</span>';
+            }
+        },
+        { 
+            title: "Last Visit", 
+            field: "lastVisit",
+            sorter: "date",
+            widthGrow: 1.5,
+            hozAlign: "center"
+        },
+        { 
+            title: "Actions",
+            hozAlign: "center",
+            widthGrow: 1,
+            formatter: function(cell){
+                return '<button class="btn btn-sm btn-primary btn-action btn-view-history" title="View History">📋 View History</button>';
+            }
+        }
+    ]
+});
+
+// Show patient history when row is clicked
+table.on("rowClick", function(e, row){
+    const isButton = e.target.tagName === 'BUTTON' || 
+                    e.target.closest('button') !== null ||
+                    e.target.classList.contains('btn') ||
+                    e.target.closest('.btn') !== null;
+    
+    if (isButton) {
+        const data = row.getData();
+        showPatientHistory(data);
+        return;
+    }
+    
+    const data = row.getData();
+    showPatientHistory(data);
+});
+
+// Show patient history function
+function showPatientHistory(patientData) {
+    $("#patientName").text(patientData.fullname);
+    $("#totalVisits").text(patientData.totalVisits);
+    $("#completedVisits").text(patientData.completedVisits);
+    $("#lastVisit").text(patientData.lastVisit || '-');
+    
+    // Build timeline
+    const timeline = $("#appointmentTimeline");
+    timeline.empty();
+    
+    // Sort appointments by date (most recent first)
+    const sortedAppointments = patientData.appointments.sort((a, b) => {
+        return new Date(b.date) - new Date(a.date);
+    });
+    
+    sortedAppointments.forEach(appt => {
+        let statusBadge = "secondary";
+        if (appt.status === "Waiting") statusBadge = "warning";
+        else if (appt.status === "Done") statusBadge = "success";
+        else if (appt.status === "Upcoming") statusBadge = "info";
+        else if (appt.status === "Cancelled") statusBadge = "danger";
+        
+        // Handle services display - try both services and service_full fields
+        let servicesText = 'No service specified';
+        if (appt.services && appt.services.trim() !== '') {
+            servicesText = appt.services;
+        } else if (appt.service_full && appt.service_full.trim() !== '') {
+            servicesText = appt.service_full;
+        }
+        
+        // Debug for this specific appointment
+        console.log('Appointment services:', {
+            services: appt.services,
+            service_full: appt.service_full,
+            final: servicesText
+        });
+        
+        const timelineItem = `
+            <div class="timeline-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">${appt.date} at ${appt.time}</h6>
+                        <p class="mb-1"><strong>Service:</strong> ${servicesText}</p>
+                        <p class="mb-1"><strong>Payment:</strong> ₱${parseFloat(appt.downpayment).toLocaleString()} (${appt.payment_method.toUpperCase()})</p>
+                    </div>
+                    <div>
+                        <span class="badge badge-${statusBadge}">${appt.status}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        timeline.append(timelineItem);
+    });
+    
+    $("#patientHistoryModal").modal("show");
+}
+
+$('#patientHistoryModal').on('hidden.bs.modal', function() {
+    $('body').removeClass('modal-open');
+    $('.modal-backdrop').remove();
+});
+</script>
+
+</body>
+</html>
