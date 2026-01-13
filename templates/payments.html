@@ -41,6 +41,34 @@
             display: block;
             margin-bottom: 15px;
         }
+
+        /* Payment info card styling */
+        .payment-info-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .payment-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .payment-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .payment-info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .payment-info-value {
+            color: #212529;
+        }
     </style>
 </head>
 
@@ -175,21 +203,41 @@
     </div>
   </div>
 </div>
+
 <!-- PROOF VIEW MODAL -->
 <div class="modal fade" id="proofModal" tabindex="-1">
   <div class="modal-dialog modal-md modal-dialog-centered">
     <div class="modal-content">
 
       <div class="modal-header">
-        <h5 class="modal-title">Payment Proof</h5>
+        <h5 class="modal-title">Downpayment Proof</h5>
         <button type="button" class="close" data-dismiss="modal">&times;</button>
       </div>
 
-      <div class="modal-body text-center">
-        <img id="proofImage"
-             src=""
-             alt="Payment Proof"
-             class="img-fluid rounded border">
+      <div class="modal-body">
+        <!-- Payment Information Card -->
+        <div class="payment-info-card">
+          <div class="payment-info-item">
+            <span class="payment-info-label"><i class="fa fa-user"></i> Patient Name:</span>
+            <span class="payment-info-value" id="proofPatientName">—</span>
+          </div>
+          <div class="payment-info-item">
+            <span class="payment-info-label"><i class="fa fa-money"></i> Amount:</span>
+            <span class="payment-info-value" id="proofAmount">—</span>
+          </div>
+          <div class="payment-info-item">
+            <span class="payment-info-label"><i class="fa fa-credit-card"></i> Payment Method:</span>
+            <span class="payment-info-value" id="proofMethod">—</span>
+          </div>
+        </div>
+
+        <!-- Payment Proof Image -->
+        <div class="text-center">
+          <img id="proofImage"
+               src=""
+               alt="Payment Proof"
+               class="img-fluid rounded border">
+        </div>
       </div>
 
     </div>
@@ -267,7 +315,8 @@ new Tabulator("#payments-table", {
             formatter: function(cell){
                 const url = cell.getValue();
                 if (!url) return "—";
-                return `<button class="btn btn-sm btn-info" onclick="viewProof('${url}')">View</button>`;
+                const rowData = cell.getRow().getData();
+                return `<button class="btn btn-sm btn-info" onclick='viewProof(${JSON.stringify(rowData)})'>View</button>`;
             }
         },
 
@@ -379,9 +428,17 @@ function submitDecline() {
     });
 }
 
-// View Proof Function
-function viewProof(imageUrl) {
-    $("#proofImage").attr("src", imageUrl);
+// View Proof Function - Now accepts payment data object
+function viewProof(paymentData) {
+    // Populate payment information
+    $("#proofPatientName").text(paymentData.fullname || "—");
+    $("#proofAmount").text("₱" + (paymentData.amount || "0.00"));
+    $("#proofMethod").text(paymentData.method || "—");
+    
+    // Set image
+    $("#proofImage").attr("src", paymentData.proof || "");
+    
+    // Show modal
     $("#proofModal").modal("show");
 }
 
@@ -391,10 +448,6 @@ $('#declineModal, #proofModal').on('hidden.bs.modal', function() {
     $('.modal-backdrop').remove();
 });
 </script>
-
-
-
-
 
 </body>
 </html>
