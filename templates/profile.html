@@ -61,51 +61,6 @@
             cursor: not-allowed;
         }
         
-        .info-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .info-row:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-        
-        .info-icon {
-            width: 40px;
-            height: 40px;
-            background: #f0f3ff;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            color: #8ec5fc;
-            font-size: 18px;
-        }
-        
-        .info-content {
-            flex: 1;
-        }
-        
-        .info-label {
-            font-size: 12px;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-        }
-        
-        .info-value {
-            font-size: 16px;
-            color: #333;
-            font-weight: 500;
-        }
-        
         .btn-edit-mode {
             background: linear-gradient(135deg, #8ec5fc 0%, #4a90e2 100%);
             border: none;
@@ -160,6 +115,48 @@
         .edit-mode .form-control:focus {
             border-color: #8ec5fc;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .payment-method-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .payment-method-card:hover {
+            border-color: #8ec5fc;
+        }
+
+        .payment-method-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .payment-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .gcash-icon {
+            color: #007DFF;
+        }
+
+        .paymaya-icon {
+            color: #00C853;
         }
     </style>
 </head>
@@ -313,6 +310,101 @@
                                 </div>
                             </div>
 
+                            <!-- Payment Information Section -->
+                            <div class="section-title mt-4">
+                                <i class="fa fa-credit-card mr-2"></i>Payment Information
+                            </div>
+
+                            <p class="text-muted mb-3">
+                                <small><i class="fa fa-info-circle mr-1"></i>These details will be shared with customers during payment via chatbot</small>
+                            </p>
+
+                            <!-- GCash Payment Method -->
+                            <div class="payment-method-card">
+                                <div class="payment-method-header">
+                                    <div class="payment-icon gcash-icon">
+                                        <i class="fa fa-mobile"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0">GCash</h5>
+                                        <small class="text-muted">Mobile wallet payment</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="gcash_number">
+                                                <i class="fa fa-phone mr-2 text-primary"></i>GCash Number
+                                            </label>
+                                            <input type="tel" 
+                                                   class="form-control" 
+                                                   id="gcash_number" 
+                                                   name="gcash_number"
+                                                   value="{{ user.gcash_number or '' }}" 
+                                                   placeholder="e.g., 0912 345 6789"
+                                                   disabled>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="gcash_name">
+                                                <i class="fa fa-user mr-2 text-primary"></i>Account Name
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="gcash_name" 
+                                                   name="gcash_name"
+                                                   value="{{ user.gcash_name or 'Jaylon Dental Clinic' }}" 
+                                                   placeholder="Account holder name"
+                                                   disabled>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PayMaya Payment Method -->
+                            <div class="payment-method-card">
+                                <div class="payment-method-header">
+                                    <div class="payment-icon paymaya-icon">
+                                        <i class="fa fa-credit-card"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0">PayMaya</h5>
+                                        <small class="text-muted">Digital payment platform</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="paymaya_number">
+                                                <i class="fa fa-phone mr-2 text-primary"></i>PayMaya Number
+                                            </label>
+                                            <input type="tel" 
+                                                   class="form-control" 
+                                                   id="paymaya_number" 
+                                                   name="paymaya_number"
+                                                   value="{{ user.paymaya_number or '' }}" 
+                                                   placeholder="e.g., 0912 345 6789"
+                                                   disabled>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="paymaya_name">
+                                                <i class="fa fa-user mr-2 text-primary"></i>Account Name
+                                            </label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="paymaya_name" 
+                                                   name="paymaya_name"
+                                                   value="{{ user.paymaya_name or 'Jaylon Dental Clinic' }}" 
+                                                   placeholder="Account holder name"
+                                                   disabled>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Change Password Section -->
                             <div class="section-title mt-4">
                                 <i class="fa fa-lock mr-2"></i>Change Password
@@ -415,7 +507,11 @@
 let isEditMode = false;
 let originalData = {
     fullname: "{{ user.fullname }}",
-    email: "{{ user.email }}"
+    email: "{{ user.email }}",
+    gcash_number: "{{ user.gcash_number or '' }}",
+    gcash_name: "{{ user.gcash_name or 'Jaylon Dental Clinic' }}",
+    paymaya_number: "{{ user.paymaya_number or '' }}",
+    paymaya_name: "{{ user.paymaya_name or 'Jaylon Dental Clinic' }}"
 };
 
 // Toggle password visibility
@@ -441,6 +537,10 @@ function toggleEditMode() {
     // Enable fields
     document.getElementById('fullname').disabled = false;
     document.getElementById('email').disabled = false;
+    document.getElementById('gcash_number').disabled = false;
+    document.getElementById('gcash_name').disabled = false;
+    document.getElementById('paymaya_number').disabled = false;
+    document.getElementById('paymaya_name').disabled = false;
     document.getElementById('current_password').disabled = false;
     document.getElementById('new_password').disabled = false;
     document.getElementById('confirm_password').disabled = false;
@@ -463,6 +563,10 @@ function cancelEdit() {
     // Restore original values
     document.getElementById('fullname').value = originalData.fullname;
     document.getElementById('email').value = originalData.email;
+    document.getElementById('gcash_number').value = originalData.gcash_number;
+    document.getElementById('gcash_name').value = originalData.gcash_name;
+    document.getElementById('paymaya_number').value = originalData.paymaya_number;
+    document.getElementById('paymaya_name').value = originalData.paymaya_name;
     
     // Clear password fields
     document.getElementById('current_password').value = '';
@@ -472,6 +576,10 @@ function cancelEdit() {
     // Disable fields
     document.getElementById('fullname').disabled = true;
     document.getElementById('email').disabled = true;
+    document.getElementById('gcash_number').disabled = true;
+    document.getElementById('gcash_name').disabled = true;
+    document.getElementById('paymaya_number').disabled = true;
+    document.getElementById('paymaya_name').disabled = true;
     document.getElementById('current_password').disabled = true;
     document.getElementById('new_password').disabled = true;
     document.getElementById('confirm_password').disabled = true;
@@ -506,6 +614,10 @@ document.getElementById('profileForm').addEventListener('submit', function(e) {
     
     const fullname = document.getElementById('fullname').value.trim();
     const email = document.getElementById('email').value.trim();
+    const gcashNumber = document.getElementById('gcash_number').value.trim();
+    const gcashName = document.getElementById('gcash_name').value.trim();
+    const paymayaNumber = document.getElementById('paymaya_number').value.trim();
+    const paymayaName = document.getElementById('paymaya_name').value.trim();
     const currentPassword = document.getElementById('current_password').value;
     const newPassword = document.getElementById('new_password').value;
     const confirmPassword = document.getElementById('confirm_password').value;
@@ -520,6 +632,19 @@ document.getElementById('profileForm').addEventListener('submit', function(e) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         showToast('error', 'Please enter a valid email address');
+        return;
+    }
+    
+    // Phone validation (if provided)
+    const phoneRegex = /^[0-9\s\-\+\(\)]+$/;
+    
+    if (gcashNumber && !phoneRegex.test(gcashNumber)) {
+        showToast('error', 'Please enter a valid GCash number');
+        return;
+    }
+    
+    if (paymayaNumber && !phoneRegex.test(paymayaNumber)) {
+        showToast('error', 'Please enter a valid PayMaya number');
         return;
     }
     
@@ -544,7 +669,11 @@ document.getElementById('profileForm').addEventListener('submit', function(e) {
     // Prepare data
     const formData = {
         fullname: fullname,
-        email: email
+        email: email,
+        gcash_number: gcashNumber,
+        gcash_name: gcashName,
+        paymaya_number: paymayaNumber,
+        paymaya_name: paymayaName
     };
     
     if (currentPassword && newPassword) {
@@ -568,6 +697,10 @@ document.getElementById('profileForm').addEventListener('submit', function(e) {
             // Update original data
             originalData.fullname = fullname;
             originalData.email = email;
+            originalData.gcash_number = gcashNumber;
+            originalData.gcash_name = gcashName;
+            originalData.paymaya_number = paymayaNumber;
+            originalData.paymaya_name = paymayaName;
             
             // Update header display
             document.querySelector('.profile-header h3').textContent = fullname;
