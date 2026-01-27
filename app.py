@@ -176,6 +176,19 @@ def update_profile():
             
             update_data["email"] = email
         
+        # Update payment information
+        if "gcash_number" in data:
+            update_data["gcash_number"] = data["gcash_number"].strip() if data["gcash_number"] else None
+        
+        if "gcash_name" in data:
+            update_data["gcash_name"] = data["gcash_name"].strip() if data["gcash_name"] else "Jaylon Dental Clinic"
+        
+        if "paymaya_number" in data:
+            update_data["paymaya_number"] = data["paymaya_number"].strip() if data["paymaya_number"] else None
+        
+        if "paymaya_name" in data:
+            update_data["paymaya_name"] = data["paymaya_name"].strip() if data["paymaya_name"] else "Jaylon Dental Clinic"
+        
         # Handle password change
         if "current_password" in data and "new_password" in data:
             current_password = data["current_password"]
@@ -924,6 +937,53 @@ def update_user_state(sender_id, state):
 # -----------------------------
 from datetime import datetime
 
+def get_payment_details(method):
+    """
+    Get payment details for the specified method from admin profile
+    
+    Args:
+        method (str): Payment method - 'GCASH' or 'PAYMAYA'
+    
+    Returns:
+        dict: Contains 'number' and 'name' for the payment method
+    """
+    try:
+        # Find admin user
+        admin_user = users_collection.find_one({"role": "admin"})
+        
+        if not admin_user:
+            # Fallback to default values if no admin found
+            return {
+                'number': '0912 345 6789',
+                'name': 'Jaylon Dental Clinic'
+            }
+        
+        # Get method-specific details
+        if method == 'GCASH':
+            return {
+                'number': admin_user.get('gcash_number') or '0912 345 6789',
+                'name': admin_user.get('gcash_name') or 'Jaylon Dental Clinic'
+            }
+        elif method == 'PAYMAYA':
+            return {
+                'number': admin_user.get('paymaya_number') or '0912 345 6789',
+                'name': admin_user.get('paymaya_name') or 'Jaylon Dental Clinic'
+            }
+        
+        # Fallback for unknown method
+        return {
+            'number': '0912 345 6789',
+            'name': 'Jaylon Dental Clinic'
+        }
+        
+    except Exception as e:
+        print(f"Error getting payment details: {e}")
+        # Return default values on error
+        return {
+            'number': '0912 345 6789',
+            'name': 'Jaylon Dental Clinic'
+        }
+        
 def handle_user_message(sender, text):
     if sender not in user_state:
         user_state[sender] = {
@@ -1142,11 +1202,29 @@ def handle_user_message(sender, text):
         method = text.replace("PAYMENT_", "")
         state["payment_method"] = method
         state["step"] = "send_proof"
+        
+        # Get payment details for the specific method
+        payment_details = get_payment_details(method)
 
         payment_info = {
-            "GCASH": "📱 **GCASH PAYMENT**\n\n💰 Amount: ₱{:.2f}\n📞 Send to: 0912 345 6789\n👤 Name: Jaylon Dental Clinic".format(state["downpayment"]),
-            "PAYMAYA": "💳 **PAYMAYA PAYMENT**\n\n💰 Amount: ₱{:.2f}\n📞 Send to: 0912 345 6789\n👤 Name: Jaylon Dental Clinic".format(state["downpayment"]),
-            "COUNTER": "🏥 **OVER THE COUNTER**\n\n💰 Amount: ₱{:.2f}\n📍 Pay directly at:\nJaylon Dental Clinic\nStall 13 Bldg. 06 Public Market, Makilala".format(state["downpayment"])
+            "GCASH": f"""📱 **GCASH PAYMENT**
+
+    💰 Amount: ₱{state['downpayment']:.2f}
+    📞 Send to: {payment_details['number']}
+    👤 Name: {payment_details['name']}""",
+            
+            "PAYMAYA": f"""💳 **PAYMAYA PAYMENT**
+
+    💰 Amount: ₱{state['downpayment']:.2f}
+    📞 Send to: {payment_details['number']}
+    👤 Name: {payment_details['name']}""",
+            
+            "COUNTER": f"""🏥 **OVER THE COUNTER**
+
+    💰 Amount: ₱{state['downpayment']:.2f}
+    📍 Pay directly at:
+    Jaylon Dental Clinic
+    Stall 13 Bldg. 06 Public Market, Makilala"""
         }
 
         send_message(
@@ -1154,6 +1232,7 @@ def handle_user_message(sender, text):
             f"{payment_info.get(method, 'Payment details')}\n\n📸 After payment, please send a screenshot or photo of the receipt here."
         )
         return
+
 
     # -------------------------
     # STEP 5: RECEIVE PAYMENT PROOF
