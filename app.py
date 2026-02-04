@@ -2098,8 +2098,61 @@ def initialize_facebook_setup():
 
 @app.route('/reports')
 def reports():
-    payments = list(db.appointments.find({"payment_status": {"$exists": True}}))
+    # Fetch all appointments with payment information
+    payments_cursor = db.appointments.find({"payment_status": {"$exists": True}})
+    payments = []
+    
+    for payment in payments_cursor:
+        # Convert ObjectId to string for JavaScript
+        payment['_id'] = str(payment['_id'])
+        
+        # Ensure downpayment exists and is a number
+        downpayment = float(payment.get('downpayment', 0))
+        payment['downpayment'] = downpayment
+        
+        # Get service_price from the services collection
+        # Your services collection uses 'price' field, not 'service_price'
+        service_price = None
+        
+        # Try to get the service price from the services collection
+        if 'service' in payment and payment['service']:
+            # Look up service by name
+            service_data = services_collection.find_one({"name": payment['service']})
+            if service_data and 'price' in service_data:
+                service_price = float(service_data['price'])
+        
+        # Fallback: check if price is stored directly in the appointment
+        if service_price is None and 'price' in payment:
+            service_price = float(payment['price'])
+        
+        # Fallback: check if service_price is stored in appointment
+        if service_price is None and 'service_price' in payment:
+            service_price = float(payment['service_price'])
+        
+        # Last resort: if still not found, use downpayment (means fully paid)
+        if service_price is None or service_price == 0:
+            service_price = downpayment
+        
+        # Store the service price for the template
+        payment['service_price'] = service_price
+        
+        # Calculate remaining balance
+        payment['remaining_balance'] = service_price - downpayment
+        
+        payments.append(payment)
+    
+    # Debug: Print first payment to verify data
+    if payments:
+        print("=== DEBUG: Sample payment data ===")
+        print(f"Patient: {payments[0].get('fullname')}")
+        print(f"Service: {payments[0].get('service')}")
+        print(f"Down Payment: {payments[0].get('downpayment')}")
+        print(f"Service Price: {payments[0].get('service_price')}")
+        print(f"Remaining Balance: {payments[0].get('remaining_balance')}")
+        print("==================================")
+    
     return render_template('reports.html', payments=payments)
+
 
 @app.route('/patient-history')
 def patient_history():
