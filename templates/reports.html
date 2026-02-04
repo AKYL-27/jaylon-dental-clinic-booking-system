@@ -67,6 +67,37 @@
         .card-header {
             background-color: rgba(255, 255, 255);
         }
+        
+        /* Modal Styles */
+        .modal-lg {
+            max-width: 900px;
+        }
+        
+        .patient-details-table {
+            font-size: 0.9rem;
+        }
+        
+        .patient-details-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .badge-fully-paid {
+            background-color: #28a745;
+        }
+        
+        .badge-partial {
+            background-color: #ffc107;
+        }
+        
+        .badge-unpaid {
+            background-color: #dc3545;
+        }
+        
+        .details-btn {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 
@@ -213,8 +244,7 @@
                                 <th>Payment Method</th>
                                 <th>Number of Payments</th>
                                 <th>Total Amount</th>
-                                <th>Average Amount</th>
-                                <th>Percentage</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="breakdownTable">
@@ -237,34 +267,81 @@
 
 </div>
 
+<!-- Patient Details Modal -->
+<div class="modal fade" id="patientDetailsModal" tabindex="-1" role="dialog" aria-labelledby="patientDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="patientDetailsModalLabel">Patient Payment Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered patient-details-table">
+                        <thead>
+                            <tr>
+                                <th>Patient Name</th>
+                                <th>Down Payment</th>
+                                <th>Remaining Balance</th>
+                                <th>Payment Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientDetailsTableBody">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@2.2.4/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.4/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/js/bootstrap.min.js"></script>
 
 <script>
-// Payment data from Flask
+// Payment data from Flask - WITH DEBUGGING
 const paymentsData = [
    {% for p in payments %}
    {
        id: "{{ p._id }}",
        fullname: "{{ p.fullname }}",
        method: "{{ p.payment_method }}",
-       amount: {{ p.downpayment }},
+       amount: parseFloat("{{ p.downpayment }}") || 0,
+       servicePrice: parseFloat("{{ p.service_price }}") || 0,
        status: "{{ p.payment_status }}",
-       date: "{{ p.appointment_date if p.appointment_date else '' }}"
+       paymentStatus: "{{ p.payment_status if p.payment_status else 'Pending' }}"
    },
    {% endfor %}
 ];
 
+// DEBUG: Log the first few payments to check data
+console.log("=== PAYMENT DATA DEBUG ===");
+console.log("Total payments:", paymentsData.length);
+if (paymentsData.length > 0) {
+    console.log("First payment:", paymentsData[0]);
+    console.log("Service Price:", paymentsData[0].servicePrice);
+    console.log("Down Payment:", paymentsData[0].amount);
+    console.log("Remaining:", paymentsData[0].servicePrice - paymentsData[0].amount);
+}
+console.log("=========================");
+
 let methodChart, revenueChart;
 let currentStats = null;
+let currentFilteredData = [];
 
 function calculateStats(data) {
     const stats = {
-        counter: { count: 0, total: 0 },
-        gcash: { count: 0, total: 0 },
-        paymaya: { count: 0, total: 0 }
+        counter: { count: 0, total: 0, payments: [] },
+        gcash: { count: 0, total: 0, payments: [] },
+        paymaya: { count: 0, total: 0, payments: [] }
     };
 
     data.forEach(payment => {
@@ -274,12 +351,15 @@ function calculateStats(data) {
         if (method.includes('counter')) {
             stats.counter.count++;
             stats.counter.total += amount;
+            stats.counter.payments.push(payment);
         } else if (method.includes('gcash')) {
             stats.gcash.count++;
             stats.gcash.total += amount;
+            stats.gcash.payments.push(payment);
         } else if (method.includes('paymaya') || method.includes('maya')) {
             stats.paymaya.count++;
             stats.paymaya.total += amount;
+            stats.paymaya.payments.push(payment);
         }
     });
 
@@ -309,20 +389,98 @@ function updateBreakdownTable(stats, grandTotal) {
     ];
 
     methods.forEach(method => {
-        const avg = method.data.count > 0 ? method.data.total / method.data.count : 0;
-        const percentage = grandTotal > 0 ? (method.data.total / grandTotal * 100) : 0;
-
         const row = `
             <tr>
                 <td><span style="display:inline-block;width:12px;height:12px;background:${method.color};border-radius:2px;margin-right:8px;"></span>${method.name}</td>
                 <td>${method.data.count}</td>
                 <td>₱${method.data.total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                <td>₱${avg.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                <td>${percentage.toFixed(1)}%</td>
+                <td>
+                    <button class="btn btn-sm btn-info details-btn" onclick="showPatientDetails('${method.name.toLowerCase()}')">
+                        <i class="fa fa-eye"></i> More Details
+                    </button>
+                </td>
             </tr>
         `;
         tbody.innerHTML += row;
     });
+}
+
+function showPatientDetails(methodName) {
+    let payments = [];
+    
+    if (methodName === 'counter') {
+        payments = currentStats.counter.payments;
+    } else if (methodName === 'gcash') {
+        payments = currentStats.gcash.payments;
+    } else if (methodName === 'paymaya') {
+        payments = currentStats.paymaya.payments;
+    }
+    
+    console.log(`=== MODAL DEBUG for ${methodName} ===`);
+    console.log("Payments to display:", payments.length);
+    if (payments.length > 0) {
+        console.log("First payment details:", {
+            name: payments[0].fullname,
+            servicePrice: payments[0].servicePrice,
+            downPayment: payments[0].amount,
+            calculated_remaining: payments[0].servicePrice - payments[0].amount
+        });
+    }
+    
+    // Update modal title
+    const modalTitle = document.getElementById('patientDetailsModalLabel');
+    modalTitle.textContent = `Patient Payment Details - ${methodName.charAt(0).toUpperCase() + methodName.slice(1)}`;
+    
+    // Populate table
+    const tbody = document.getElementById('patientDetailsTableBody');
+    tbody.innerHTML = '';
+    
+    if (payments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No payments found for this method</td></tr>';
+    } else {
+        payments.forEach(payment => {
+            // Parse values explicitly
+            const servicePrice = parseFloat(payment.servicePrice) || 0;
+            const downPayment = parseFloat(payment.amount) || 0;
+            
+            // Calculate remaining balance: price - downpayment
+            const remainingBalance = servicePrice - downPayment;
+            
+            console.log(`Patient: ${payment.fullname}`, {
+                servicePrice: servicePrice,
+                downPayment: downPayment,
+                remainingBalance: remainingBalance
+            });
+            
+            // Determine payment status badge
+            let statusBadge = '';
+            let statusClass = '';
+            
+            if (remainingBalance <= 0) {
+                statusBadge = 'Fully Paid';
+                statusClass = 'badge-fully-paid';
+            } else if (downPayment > 0 && remainingBalance > 0) {
+                statusBadge = 'Partial Payment';
+                statusClass = 'badge-partial';
+            } else {
+                statusBadge = 'Unpaid';
+                statusClass = 'badge-unpaid';
+            }
+            
+            const row = `
+                <tr>
+                    <td>${payment.fullname}</td>
+                    <td>₱${downPayment.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>₱${remainingBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td><span class="badge ${statusClass}">${statusBadge}</span></td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+    
+    // Show modal
+    $('#patientDetailsModal').modal('show');
 }
 
 function updateCharts(stats) {
@@ -402,6 +560,7 @@ function applyFilters() {
         filtered = filtered.filter(p => !p.date || p.date <= dateTo);
     }
 
+    currentFilteredData = filtered;
     const stats = calculateStats(filtered);
     updateDisplay(stats);
 }
@@ -457,7 +616,6 @@ async function exportReport() {
     
     const tableData = [];
     if (currentStats) {
-        const grandTotal = currentStats.counter.total + currentStats.gcash.total + currentStats.paymaya.total;
         const methods = [
             { name: 'Counter', data: currentStats.counter },
             { name: 'GCash', data: currentStats.gcash },
@@ -465,34 +623,21 @@ async function exportReport() {
         ];
         
         methods.forEach(method => {
-            const avg = method.data.count > 0 ? method.data.total / method.data.count : 0;
-            const percentage = grandTotal > 0 ? (method.data.total / grandTotal * 100) : 0;
-            
             tableData.push([
                 method.name,
                 method.data.count.toString(),
-                `PHP ${method.data.total.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
-                `PHP ${avg.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
-                `${percentage.toFixed(1)}%`
+                `PHP ${method.data.total.toLocaleString('en-US', {minimumFractionDigits: 2})}`
             ]);
         });
     }
     
     doc.autoTable({
         startY: yPosition,
-        head: [['Payment Method', 'Count', 'Total Amount', 'Average', 'Percentage']],
+        head: [['Payment Method', 'Count', 'Total Amount']],
         body: tableData,
         theme: 'striped',
         headStyles: { fillColor: [41, 128, 185] },
-        styles: { fontSize: 9 },
-        didParseCell: function(data) {
-            // Replace ₱ with PHP in amount columns
-            if (data.column.index === 2 || data.column.index === 3) {
-                if (data.cell.text[0] && data.cell.text[0].includes('₱')) {
-                    data.cell.text[0] = data.cell.text[0].replace('₱', 'PHP ');
-                }
-            }
-        }
+        styles: { fontSize: 9 }
     });
     
     yPosition = doc.lastAutoTable.finalY + 15;
@@ -512,41 +657,57 @@ async function exportReport() {
         doc.addImage(revenueChartImg, 'PNG', 15, 155, 180, 100);
     }
     
-    // Add detailed transactions on new page
-    let filtered = paymentsData;
-    if (statusFilter !== 'all') {
-        filtered = filtered.filter(p => p.status.toLowerCase() === statusFilter);
-    }
-    if (dateFrom) {
-        filtered = filtered.filter(p => !p.date || p.date >= dateFrom);
-    }
-    if (dateTo) {
-        filtered = filtered.filter(p => !p.date || p.date <= dateTo);
-    }
-    
-    if (filtered.length > 0) {
-        doc.addPage();
-        doc.setFontSize(14);
-        doc.text('Detailed Transactions', 14, 20);
+    // Add detailed patient transactions for each payment method
+    if (currentStats) {
+        const methods = [
+            { name: 'Counter', data: currentStats.counter },
+            { name: 'GCash', data: currentStats.gcash },
+            { name: 'PayMaya', data: currentStats.paymaya }
+        ];
         
-        const transactionData = filtered.map(p => [
-            p.method,
-            p.fullname,
-            `PHP ${parseFloat(p.amount).toLocaleString('en-US', {minimumFractionDigits: 2})}`,
-            p.status,
-            p.date && p.date.trim() !== '' ? p.date : new Date().toISOString().split('T')[0]
-        ]);
-        
-        doc.autoTable({
-            startY: 28,
-            head: [['Method', 'Patient Name', 'Amount', 'Status', 'Date']],
-            body: transactionData,
-            theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] },
-            styles: { fontSize: 8 },
-            columnStyles: {
-                1: { cellWidth: 50 },
-                2: { cellWidth: 30 }
+        methods.forEach(method => {
+            if (method.data.payments.length > 0) {
+                doc.addPage();
+                doc.setFontSize(14);
+                doc.text(`${method.name} - Patient Details`, 14, 20);
+                
+                const patientData = method.data.payments.map(p => {
+                    const servicePrice = parseFloat(p.servicePrice) || 0;
+                    const downPayment = parseFloat(p.amount) || 0;
+                    const remainingBalance = servicePrice - downPayment;
+                    let status = '';
+                    
+                    if (remainingBalance <= 0) {
+                        status = 'Fully Paid';
+                    } else if (downPayment > 0 && remainingBalance > 0) {
+                        status = 'Partial Payment';
+                    } else {
+                        status = 'Unpaid';
+                    }
+                    
+                    return [
+                        p.fullname,
+                        `PHP ${downPayment.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
+                        `PHP ${remainingBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
+                        status,
+                    ];
+                });
+                
+                doc.autoTable({
+                    startY: 28,
+                    head: [['Patient Name', 'Down Payment', 'Remaining Balance', 'Status']],
+                    body: patientData,
+                    theme: 'striped',
+                    headStyles: { fillColor: [41, 128, 185] },
+                    styles: { fontSize: 8 },
+                    columnStyles: {
+                        0: { cellWidth: 50 },
+                        1: { cellWidth: 35 },
+                        2: { cellWidth: 35 },
+                        3: { cellWidth: 35 },
+                        4: { cellWidth: 30 }
+                    }
+                });
             }
         });
     }
