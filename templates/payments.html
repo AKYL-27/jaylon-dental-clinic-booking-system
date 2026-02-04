@@ -69,6 +69,21 @@
         .payment-info-value {
             color: #212529;
         }
+
+        /* Amount input styling */
+        .amount-input {
+            width: 120px;
+            padding: 4px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            text-align: right;
+        }
+
+        .amount-input:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
     </style>
 </head>
 
@@ -222,8 +237,24 @@
             <span class="payment-info-value" id="proofPatientName">—</span>
           </div>
           <div class="payment-info-item">
+            <span class="payment-info-label"><i class="fa fa-tooth"></i> Service:</span>
+            <span class="payment-info-value" id="proofServiceName">—</span>
+          </div>
+          <div class="payment-info-item">
             <span class="payment-info-label"><i class="fa fa-money"></i> Amount:</span>
-            <span class="payment-info-value" id="proofAmount">—</span>
+            <div class="payment-info-value">
+              <div class="input-group" style="max-width: 200px;">
+                <div class="input-group-prepend">
+                  <span class="input-group-text">₱</span>
+                </div>
+                <input type="number" 
+                       class="form-control" 
+                       id="proofAmountInput" 
+                       step="0.01" 
+                       min="0"
+                       placeholder="500.00">
+              </div>
+            </div>
           </div>
           <div class="payment-info-item">
             <span class="payment-info-label"><i class="fa fa-credit-card"></i> Payment Method:</span>
@@ -238,6 +269,14 @@
                alt="Payment Proof"
                class="img-fluid rounded border">
         </div>
+
+        <!-- Hidden field to store appointment ID -->
+        <input type="hidden" id="proofAppointmentId">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button class="btn btn-primary" onclick="saveModalAmount()">Save Amount</button>
       </div>
 
     </div>
@@ -289,6 +328,7 @@ const paymentsData = [
        fullname: "{{ p.fullname }}",
        method: "{{ p.payment_method }}",
        amount: "{{ '{:,.2f}'.format(p.downpayment) }}",
+       service_name: "{{ p.service or 'N/A' }}",
        proof: "{{ p.payment_proof or '' }}",
        payment_status: "{{ p.payment_status }}"
    },
@@ -306,7 +346,32 @@ new Tabulator("#payments-table", {
     columns: [
         { title: "Patient Name", field: "fullname", headerFilter: "input" },
         { title: "Method", field: "method" },
-        { title: "Amount", field: "amount" },
+        
+        {
+            title: "Amount",
+            field: "amount",
+            hozAlign: "center",
+            formatter: function(cell){
+                const rowData = cell.getRow().getData();
+                const value = cell.getValue() || '500.00';
+                const status = (rowData.payment_status || '').toLowerCase();
+                
+                // If payment is approved or declined, just show the amount (read-only)
+                if (status === 'approved' || status === 'declined' || status === 'rejected') {
+                    return '₱' + parseFloat(value).toFixed(2);
+                }
+                
+                // If pending, show input field
+                return `<input type="number" 
+                        class="amount-input" 
+                        value="${value}" 
+                        placeholder="500.00"
+                        step="0.01"
+                        min="0"
+                        onchange="updateAmount('${rowData.id}', this.value)"
+                        onclick="event.stopPropagation()">`;
+            }
+        },
 
         {
             title: "Proof",
@@ -352,8 +417,45 @@ new Tabulator("#payments-table", {
     ]
 });
 
+// Update amount function
+function updateAmount(appointmentId, amount) {
+    if (!amount || amount === '') {
+        return;
+    }
+
+    fetch("/api/payments/update-amount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            appointment_id: appointmentId,
+            amount: parseFloat(amount)
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToastSuccess('Amount updated');
+        } else {
+            showToastError(data.error || 'Failed to update amount');
+        }
+    })
+    .catch(() => {
+        showToastError('Server error');
+    });
+}
+
 // Approve Payment Function
 function approvePayment(appointmentId) {
+    // Get the amount from the table
+    const table = Tabulator.findTable("#payments-table")[0];
+    const row = table.getRows().find(r => r.getData().id === appointmentId);
+    const amount = row ? row.getData().amount : '';
+
+    if (!amount || amount === '' || parseFloat(amount) <= 0) {
+        showToastError('Please enter amount before approving');
+        return;
+    }
+
     Swal.fire({
         title: 'Approve Payment?',
         text: "Confirm that this payment is valid",
@@ -368,7 +470,10 @@ function approvePayment(appointmentId) {
             fetch("/api/payments/approve", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ appointment_id: appointmentId })
+                body: JSON.stringify({ 
+                    appointment_id: appointmentId,
+                    amount: parseFloat(amount)
+                })
             })
             .then(res => res.json())
             .then(data => {
@@ -432,14 +537,57 @@ function submitDecline() {
 function viewProof(paymentData) {
     // Populate payment information
     $("#proofPatientName").text(paymentData.fullname || "—");
-    $("#proofAmount").text("₱" + (paymentData.amount || "0.00"));
+    
+    // Display service name
+    $("#proofServiceName").text(paymentData.service_name || "N/A");
+    
+    // Set amount in input field
+    const amountValue = paymentData.amount ? parseFloat(paymentData.amount) : 500.00;
+    $("#proofAmountInput").val(amountValue);
+    
     $("#proofMethod").text(paymentData.method || "—");
     
     // Set image
     $("#proofImage").attr("src", paymentData.proof || "");
     
+    // Store appointment ID for saving
+    $("#proofAppointmentId").val(paymentData.id);
+    
     // Show modal
     $("#proofModal").modal("show");
+}
+
+// Save amount from modal
+function saveModalAmount() {
+    const appointmentId = $("#proofAppointmentId").val();
+    const amount = $("#proofAmountInput").val();
+    
+    if (!amount || amount === '' || parseFloat(amount) <= 0) {
+        showToastError('Please enter a valid amount');
+        return;
+    }
+    
+    fetch("/api/payments/update-amount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            appointment_id: appointmentId,
+            amount: parseFloat(amount)
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            $("#proofModal").modal("hide");
+            showToastSuccess('Amount saved successfully');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToastError(data.error || 'Failed to save amount');
+        }
+    })
+    .catch(() => {
+        showToastError('Server error');
+    });
 }
 
 // Clean up modal backdrop
