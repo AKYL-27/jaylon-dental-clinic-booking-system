@@ -878,6 +878,9 @@ def send_main_menu(recipient_id):
     )
 
 
+
+
+
 # -----------------------------
 # SEND SERVICES CAROUSEL
 # -----------------------------
@@ -886,12 +889,11 @@ def send_services_carousel(recipient_id):
     if not services:
         send_message(recipient_id, "No services available at the moment.")
         return
-
     elements = []
     for s in services:
         elements.append({
             "title": s["name"],
-            "subtitle": f"Price: ₱{s['price']} | Duration: {s['duration']} mins",
+            "subtitle": f"Price: ₱{s['price']} | Down Payment: ₱{s['downpayment']} | Duration: {s['duration']} mins",
             "buttons": [
                 {
                     "type": "postback",
@@ -900,7 +902,6 @@ def send_services_carousel(recipient_id):
                 }
             ]
         })
-
     attachment = {
         "type": "template",
         "payload": {
@@ -908,8 +909,10 @@ def send_services_carousel(recipient_id):
             "elements": elements
         }
     }
-
     send_message(recipient_id, "Please choose a service:", attachment=attachment)
+
+
+
 
 
 # -----------------------------
