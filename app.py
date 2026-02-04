@@ -1542,14 +1542,38 @@ def webhook():
     return "OK", 200
 
 def notify_payment_approved(appointment):
+    # Get the service details to compare amounts
+    service = services_collection.find_one({"name": appointment['service']})
+    
+    if not service:
+        # Fallback if service not found
+        payment_message = f"Amount Paid: ₱{appointment.get('downpayment', 0):,.2f}"
+    else:
+        full_price = service.get('price', 0)
+        downpayment_required = service.get('downpayment', 0)
+        amount_paid = appointment.get('downpayment', 0)
+        
+        # Determine payment status message
+        if amount_paid >= full_price:
+            payment_message = "🎉 FULLY PAID! Thank you for your complete payment."
+        elif amount_paid == downpayment_required:
+            remaining = full_price - amount_paid
+            payment_message = f"✅ Down payment received: ₱{amount_paid:,.2f}\n💰 Remaining balance: ₱{remaining:,.2f}"
+        else:
+            # Partial payment (more than downpayment but less than full)
+            remaining = full_price - amount_paid
+            payment_message = f"✅ Payment received: ₱{amount_paid:,.2f}\n💰 Remaining balance: ₱{remaining:,.2f}"
+    
     send_message(
         appointment["user_id"],
         f"✅ Payment Approved! Your appointment is booked!\n\n"
         f"Service: {appointment['service']}\n"
         f"Date: {appointment['date']}\n"
         f"Time: {to_ampm(appointment['time'])}\n"
-        f"Payment Method: {appointment['payment_method']}"
+        f"Payment Method: {appointment['payment_method']}\n\n"
+        f"{payment_message}"
     )
+
 
 def send_user_appointments_carousel(sender_id):
     appointments = list(
