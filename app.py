@@ -650,28 +650,82 @@ def login():
     return render_template("page-login.html")
 
 # -----------------------------
-# DASHBOARD
+# DASHBOARD update paymeyment added
 # -----------------------------
 
+@app.route("/api/payments/update-amount", methods=["POST"])
+def update_payment_amount():
+    try:
+        data = request.get_json()
+        appointment_id = data.get("appointment_id")
+        amount = data.get("amount")
+        
+        if not appointment_id or not amount:
+            return jsonify({"success": False, "error": "Missing required fields"})
+        
+        # Update the downpayment amount in the appointment
+        result = appointments_collection.update_one(
+            {"_id": ObjectId(appointment_id)},
+            {"$set": {"downpayment": float(amount)}}
+        )
+        
+        if result.modified_count > 0 or result.matched_count > 0:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": "Appointment not found"})
+            
+    except Exception as e:
+        print(f"Error updating amount: {e}")
+        return jsonify({"success": False, "error": str(e)})
 
-#payments
+
+
 @app.route("/api/payments/approve", methods=["POST"])
 def approve_payment():
     data = request.json
     appointment_id = data["appointment_id"]
-
+    amount = data.get("amount")  # Get the amount from the request
+    
     appt = appointments_collection.find_one({"_id": ObjectId(appointment_id)})
     if not appt:
         return {"success": False}
-
+    
+    # Update appointment with payment status and amount
+    update_data = {
+        "payment_status": "approved",
+        "status": "confirmed"
+    }
+    
+    if amount:
+        update_data["downpayment"] = float(amount)
+    
     appointments_collection.update_one(
         {"_id": ObjectId(appointment_id)},
-        {"$set": {
-            "payment_status": "approved",
-            "status": "confirmed"
-        }}
+        {"$set": update_data}
     )
-
+    
+    # Get the service details to determine payment message
+    service = services_collection.find_one({"name": appt['service']})
+    
+    if not service:
+        # Fallback if service not found
+        payment_message = f"Amount Paid: ₱{amount:,.2f}" if amount else ""
+    else:
+        full_price = service.get('price', 0)
+        downpayment_required = service.get('downpayment', 0)
+        amount_paid = float(amount) if amount else appt.get('downpayment', 0)
+        
+        # Determine payment status message
+        if amount_paid >= full_price:
+            payment_message = "🎉 FULLY PAID! Thank you for your complete payment."
+        elif amount_paid == downpayment_required:
+            remaining = full_price - amount_paid
+            payment_message = f"✅ Down payment received: ₱{amount_paid:,.2f}\n💰 Remaining balance: ₱{remaining:,.2f}"
+        else:
+            # Partial payment (more than downpayment but less than full)
+            remaining = full_price - amount_paid
+            payment_message = f"✅ Payment received: ₱{amount_paid:,.2f}\n💰 Remaining balance: ₱{remaining:,.2f}"
+    
     # Notify user via Messenger
     send_message(
         appt["user_id"],
@@ -680,9 +734,10 @@ def approve_payment():
         f"Service: {appt['service']}\n"
         f"Date: {appt['date']}\n"
         f"Time: {to_ampm(appt['time'])}\n"
-        f"Payment Method: {appt['payment_method']}"
+        f"Payment Method: {appt['payment_method']}\n\n"
+        f"{payment_message}"
     )
-
+    
     return {"success": True}
 
 
